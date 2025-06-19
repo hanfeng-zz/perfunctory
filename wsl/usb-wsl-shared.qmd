@@ -1,0 +1,45 @@
+# wsl2 (Ubuntu) 连接 usb 设备 
+
+    WSL不提供本机连接USB设备的支持，因此需要安装开源项目usbipd-win     
+
+## 环境
+
+WSL 版本: 2.5.7.0  
+内核版本: 6.6.87.1-1  
+WSLg 版本: 1.0.66  
+MSRDC 版本: 1.2.6074  
+Direct3D 版本: 1.611.1-81528511  
+DXCore 版本: 10.0.26100.1-240331-1435.ge-release  
+Windows: 10.0.19045.5965  
+
+## 步骤
+
+- 安装USBIPD-WIN项目:两种方式,github下载msi程序安装,或者windget命令安装,我采用第一种
+  - [github-usbipd-win](https://github.com/dorssel/usbipd-win/releases)
+  - winget命令:管理员打开Powershell输入命令winget install --interactive --exact dorssel.usbipd-win
+
+- 共享USB设备至WSL2 (PowerShell)
+  - 未插入USB-SD
+    - ![alt text](1750059449194.png)
+  - 插入USB-SD,找到其设备总线ID
+    - ![alt text](image.png)
+  - 共享USB-SD设备
+    - ![alt text](1750060190281.png)
+  - 附加USB设备至WSL2
+    - ![alt text](image-1.png)
+
+- WSL2确认USB设备 (WSL2-Ubuntu)
+  - ![alt text](image-2.png)
+
+- 断开USB设备
+  - 物理断开,但是每次插入需要重新键入usbipd attach --wsl --busid <busid> 来使WSL2访问到USB设备
+  - PowerShell 运行usbipd detach --busid <busid>
+
+- 备注
+  - 端口的设备总线ID是根据电脑的ID号来分配的,即同一个USB设备插入电脑不同的USB端口,使用usbipd list显示的结果是不同的
+    - ![alt text](1750061108347.png)
+
+
+## 参考
+
+[wsl官方参考链接](https://learn.microsoft.com/zh-cn/windows/wsl/connect-usb)
