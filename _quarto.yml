@@ -1,0 +1,3 @@
+project:
+  type: default   # 普通项目类型
+  output-dir: _output
