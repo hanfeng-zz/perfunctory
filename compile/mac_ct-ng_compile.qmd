@@ -1,0 +1,193 @@
+
+在mac下编译crosstool-ng-1.25 问题记录及解决
+
+
+# 环境
+Time: 2026/03/13  
+MacOS: Sequoia 15.7.4  
+Crosstool-ng:1.25.1   
+Buildroot:2022.02.12  
+
+# 设置
+
+## 安装包
+
+>
+brew install autoconf automake bash binutils bison gawk git gnu-sed gnu-tar gettext help2man make ncurses readline wget xz zstd texinfo python@3.11 gcc@12
+>
+
+## 环境变量
+
+>
+macOS下，crosstool-ng默认使用/Library/Developer/CommandLineTools/usr/bin下clang包装的gcc，g++,即使homebrew的路径优于mac系统路径，由于homebrew中gcc,g++是类似于gcc-12,g++-12，所以还是会调用mac下clang包装的gcc,g++，因此需要对homebrew中的gcc-12,g++-12进行软链接取别名，使crosstool-ng能正确调用，python3.11同理
+>
+
+- 设置 homebrew路径优先级高于系统/usr/bin路径
+
+    ```C 
+    export PATH=/opt/homebrew/opt/gcc@12/bin:$PATH
+    export PATH="$(brew --prefix python@3.11)/bin:$PATH"
+    Note:编译前还需要将gcc12的路径声明为最高优先级，编译期间会调用ar等工具，未声明会导致出错
+    ```
+   
+- 设置gcc,g++版本
+
+    ``` C
+
+    ln -sf /opt/homebrew/bin/gcc-12 /opt/homebrew/bin/gcc  
+    ln -sf /opt/homebrew/bin/g++-12 /opt/homebrew/bin/g++
+
+    Note:homebrew 是没有gcc的，只有类似gcc-12的gcc，所以需要创建软链接，并指定gcc版本
+    ```
+- 设置python版本
+
+    ```C 
+    
+    ln -sf /opt/homebrew/bin/python3.11 /opt/homebrew/bin/python3
+    ln -sf /opt/homebrew/bin/python3.11-config /opt/homebrew/bin/python3-config
+
+    Note:see gcc
+    ```
+
+
+# 问题记录
+
+## zlib编译失败  
+
+> 此问题是在未替换gcc,g++版本时产生，可以通过将zlib版本升级到1.3.1版本解决，如果替换为gcc-12,gc++-12版本可以无需更改，编译也能通过
+
+```C
+[INFO ]  Installing zlib for host
+[EXTRA]    Configuring zlib
+[EXTRA]    Building zlib
+[ERROR]    /Library/Developer/CommandLineTools/SDKs/MacOSX26.2.sdk/usr/include/_stdio.h:322:7: error: expected identifier or '('
+[ERROR]    /Library/Developer/CommandLineTools/SDKs/MacOSX26.2.sdk/usr/include/_stdio.h:322:7: error: expected ')'
+[ERROR]    /Library/Developer/CommandLineTools/SDKs/MacOSX26.2.sdk/usr/include/_stdio.h:322:7: error: expected ')'
+[ERROR]    make[2]: *** [Makefile:184: zutil.o] Error 1
+[ERROR]    make[2]: *** Waiting for unfinished jobs....
+[ERROR]
+[ERROR]  >>
+[ERROR]  >>  Build failed in step 'Installing zlib for host'
+[ERROR]  >>        called in step '(top-level)'
+[ERROR]  >>
+[ERROR]  >>  Error happened in: CT_DoExecLog[scripts/functions@376]
+[ERROR]  >>        called from: do_zlib_backend[scripts/build/companion_libs/050-zlib.sh@116]
+[ERROR]  >>        called from: do_zlib_for_host[scripts/build/companion_libs/050-zlib.sh@58]
+[ERROR]  >>        called from: do_companion_libs_for_host[scripts/build/companion_libs.sh@36]
+[ERROR]  >>        called from: main[scripts/crosstool-NG.sh@697]
+[ERROR]  >>
+[ERROR]  >>  For more info on this error, look at the file: 'build.log'
+[ERROR]  >>  There is a list of known issues, some with workarounds, in:
+[ERROR]  >>      'crosstool-ng-1.25.0/docs/manual/B_Known_issues.md'
+[ERROR]  >>
+[ERROR]  >>  If you feel this is a bug in crosstool-NG, report it at:
+[ERROR]  >>      https://github.com/crosstool-ng/crosstool-ng/issues/
+[ERROR]  >>
+[ERROR]  >>  Make sure your report includes all the information pertinent to this issue.
+[ERROR]  >>  Read the bug reporting guidelines here:
+[ERROR]  >>      http://crosstool-ng.github.io/support/
+[ERROR]
+[ERROR]  (elapsed: 5:13.25)
+[05:14] / gmake[1]: *** [/Volumes/ext-mac/code/NanoBSP/crosstools/_build/aarch64-xts7a-linux-gnu/crosstool-ng-1.25.0/ct-ng:261: build] Error 2
+make: *** [build] Error 2
+
+```
+
+
+## binutils 编译失败  
+
+> binutils 2.38内嵌zlib,zlib版本是1.2.11版本，zutils.h文件中 fdopen宏定义在非gcc-12版本展开有问题导致编译出错。方法一是升级binutils版本，该版本的内嵌的zilb版本需要升级至1.3.1；方法二是在失败后，不要进行clean动作，直接修改其解压缩后的远码，删除define fdopen(fd,mode) NULL的定义展开，然后继续编译即可。但是在gcc-12版本中，这些方式都无需更改，也能编译通过
+
+## cc_core 编译失败  
+
+> gcc-12版本中，直接编译通过，在非gcc-12版本中，未找到解决方法.  
+
+```C
+[EXTRA]    Checking installed headers
+[INFO ]  Installing kernel headers: done in 18.12s (at 13:52)
+[INFO ]  Saving state to restart at step 'cc_core'...
+[INFO ]  =================================================================
+[INFO ]  Installing core C gcc compiler
+[EXTRA]    Configuring core C gcc compiler
+[ERROR]    /Library/Developer/CommandLineTools/SDKs/MacOSX26.2.sdk/usr/include/c++/v1/__locale:478:3: error: '__abi_tag__' attribute only applies to structs, variables, functions, and namespaces
+[ERROR]    /Library/Developer/CommandLineTools/SDKs/MacOSX26.2.sdk/usr/include/c++/v1/__locale:478:57: error: expected ';' at end of declaration list
+[ERROR]    /Library/Developer/CommandLineTools/SDKs/MacOSX26.2.sdk/usr/include/c++/v1/__locale:480:68: error: too many arguments provided to function-like macro invocation
+[ERROR]    /Library/Developer/CommandLineTools/SDKs/MacOSX26.2.sdk/usr/include/c++/v1/__locale:486:68: error: too many arguments provided to function-like macro invocation
+[ERROR]    /Library/Developer/CommandLineTools/SDKs/MacOSX26.2.sdk/usr/include/c++/v1/__locale:559:3: error: '__abi_tag__' attribute only applies to structs, variables, functions, and namespaces
+[ERROR]    /Library/Developer/CommandLineTools/SDKs/MacOSX26.2.sdk/usr/include/c++/v1/__locale:559:57: error: expected ';' at end of declaration list
+[ERROR]    /Library/Developer/CommandLineTools/SDKs/MacOSX26.2.sdk/usr/include/c++/v1/__locale:561:68: error: too many arguments provided to function-like macro invocation
+[ERROR]    /Library/Developer/CommandLineTools/SDKs/MacOSX26.2.sdk/usr/include/c++/v1/__locale:567:68: error: too many arguments provided to function-like macro invocation
+[ERROR]    /Library/Developer/CommandLineTools/SDKs/MacOSX26.2.sdk/usr/include/c++/v1/__locale:667:55: error: too many arguments provided to function-like macro invocation
+[ERROR]    /Library/Developer/CommandLineTools/SDKs/MacOSX26.2.sdk/usr/include/c++/v1/__locale:667:35: error: declaration conflicts with target of using declaration already in scope
+[ERROR]    /Library/Developer/CommandLineTools/SDKs/MacOSX26.2.sdk/usr/include/c++/v1/__locale:668:3: error: expected expression
+[ERROR]    /Library/Developer/CommandLineTools/SDKs/MacOSX26.2.sdk/usr/include/c++/v1/__locale:669:2: error: expected ';' after top level declarator
+[ERROR]    /Library/Developer/CommandLineTools/SDKs/MacOSX26.2.sdk/usr/include/c++/v1/__locale:672:55: error: too many arguments provided to function-like macro invocation
+[ERROR]    /Library/Developer/CommandLineTools/SDKs/MacOSX26.2.sdk/usr/include/c++/v1/__locale:677:55: error: too many arguments provided to function-like macro invocation
+[ERROR]    /Library/Developer/CommandLineTools/SDKs/MacOSX26.2.sdk/usr/include/c++/v1/__locale:677:35: error: declaration conflicts with target of using declaration already in scope
+[ERROR]    /Library/Developer/CommandLineTools/SDKs/MacOSX26.2.sdk/usr/include/c++/v1/__locale:678:3: error: expected expression
+[ERROR]    /Library/Developer/CommandLineTools/SDKs/MacOSX26.2.sdk/usr/include/c++/v1/__locale:679:2: error: expected ';' after top level declarator
+[ERROR]    /Library/Developer/CommandLineTools/SDKs/MacOSX26.2.sdk/usr/include/c++/v1/__locale:682:55: error: too many arguments provided to function-like macro invocation
+[ERROR]    /Library/Developer/CommandLineTools/SDKs/MacOSX26.2.sdk/usr/include/c++/v1/__locale:687:55: error: too many arguments provided to function-like macro invocation
+[ERROR]    fatal error: too many errors emitted, stopping now [-ferror-limit=]
+[ERROR]    make[2]: *** [/Volumes/ext-mac/code/NanoBSP/crosstools/_build/aarch64-xts7a-linux-gnu/.build/aarch64-xts7a-linux-gnu/src/gcc/gcc/config/aarch64/x-aarch64:3: driver-aarch64.o] Error 1
+[ERROR]
+[ERROR]  >>
+[ERROR]  >>  Build failed in step 'Installing core C gcc compiler'
+[ERROR]  >>        called in step '(top-level)'
+[ERROR]  >>
+[ERROR]  >>  Error happened in: CT_DoExecLog[scripts/functions@376]
+[ERROR]  >>        called from: do_gcc_core_backend[scripts/build/cc/gcc.sh@653]
+[ERROR]  >>        called from: do_cc_core[scripts/build/cc/gcc.sh@210]
+[ERROR]  >>        called from: main[scripts/crosstool-NG.sh@697]
+[ERROR]  >>
+[ERROR]  >>  For more info on this error, look at the file: 'build.log'
+[ERROR]  >>  There is a list of known issues, some with workarounds, in:
+[ERROR]  >>      'crosstool-ng-1.25.0/docs/manual/B_Known_issues.md'
+[ERROR]  >>
+[ERROR]  >>  If you feel this is a bug in crosstool-NG, report it at:
+[ERROR]  >>      https://github.com/crosstool-ng/crosstool-ng/issues/
+[ERROR]  >>
+[ERROR]  >>  Make sure your report includes all the information pertinent to this issue.
+[ERROR]  >>  Read the bug reporting guidelines here:
+[ERROR]  >>      http://crosstool-ng.github.io/support/
+[ERROR]
+[ERROR]  (elapsed: 15:18.37)
+[15:19] / gmake[1]: *** [/Volumes/ext-mac/code/NanoBSP/crosstools/_build/aarch64-xts7a-linux-gnu/crosstool-ng-1.25.0/ct-ng:261: build] Error 2
+make: *** [build] Error 2
+
+```
+
+## cross-gdb 编译失败
+
+> 该问题是在已经指定gcc-12版本后，但是由于本设备默认的python版本是3.14，导致crosstool-ng编译失败，降级至3.11版本即可通过
+
+```C
+[INFO ]  =================================================================
+[INFO ]  Installing cross-gdb
+[EXTRA]    Configuring cross gdb
+[EXTRA]    Building cross gdb
+[ERROR]    configure: error: failure running python-config --includes
+[ERROR]    make[3]: *** [Makefile:9781: configure-gdb] Error 1
+[ERROR]    make[2]: *** [Makefile:932: all] Error 2
+[ERROR]
+[ERROR]  >>
+[ERROR]  >>  Build failed in step 'Installing cross-gdb'
+[ERROR]  >>        called in step '(top-level)'
+[ERROR]  >>
+[ERROR]  >>  Error happened in: CT_DoExecLog[scripts/functions@376]
+[ERROR]  >>        called from: do_gdb_backend[scripts/build/debug/300-gdb.sh@346]
+[ERROR]  >>        called from: do_debug_gdb_build[scripts/build/debug/300-gdb.sh@72]
+[ERROR]  >>        called from: do_debug[scripts/build/debug.sh@35]
+[ERROR]  >>        called from: main[scripts/crosstool-NG.sh@697]
+[ERROR]  >>
+[ERROR]  >>  For more info on this error, look at the file: 'build.log'
+[ERROR]  >>  There is a list of known issues, some with workarounds, in:
+[ERROR]  >>      'crosstool-ng-1.25.0/docs/manual/B_Known_issues.md'
+[ERROR]  >>
+[ERROR]  >>  If you feel this is a bug in crosstool-NG, report it at:
+[ERROR]  >>      https://github.com/crosstool-ng/crosstool-ng/issues/
+[ERROR]  >>
+[ERROR]  >>  Make sure your report includes all the information pertinent to this issue.
+[ERROR]  >>  Read the bug reporting guidelines here:
+[ERROR]  >>      http://crosstool-ng.github.io/support/ 
+```
