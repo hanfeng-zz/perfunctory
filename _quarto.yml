@@ -1,3 +1,14 @@
 project:
   type: default   # 普通项目类型
   output-dir: _output
+
+
+format:
+  html:
+    theme: cosmo          
+    toc: true             
+    toc-expand: true
+    toc-location: left   
+    number-sections: true 
+    code-overflow: wrap   
+    code-copy: true
