@@ -55,6 +55,9 @@ Note:see gcc
 
 > 此问题是在未替换gcc,g++版本时产生，可以通过将zlib版本升级到1.3.1版本解决，如果替换为gcc-12,gc++-12版本可以无需更改，编译也能通过
 
+- [参考链接1](https://github.com/elasota/Aerofoil/issues/26)
+- [参考链接2](https://github.com/conan-io/conan-center-index/issues/28513)
+
 ```C
 [INFO ]  Installing zlib for host
 [EXTRA]    Configuring zlib
@@ -96,6 +99,8 @@ make: *** [build] Error 2
 ## binutils 编译失败  
 
 > binutils 2.38内嵌zlib,zlib版本是1.2.11版本，zutils.h文件中 fdopen宏定义在非gcc-12版本展开有问题导致编译出错。方法一是升级binutils版本，该版本的内嵌的zilb版本需要升级至1.3.1；方法二是在失败后，不要进行clean动作，直接修改其解压缩后的远码，删除define fdopen(fd,mode) NULL的定义展开，然后继续编译即可。但是在gcc-12版本中，这些方式都无需更改，也能编译通过
+
+- [binutils github mirror](https://github.com/AmanoTeam/binutils.git)
 
 ## cc_core 编译失败  
 
