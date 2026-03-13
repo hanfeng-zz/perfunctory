@@ -190,3 +190,7 @@ make: *** [build] Error 2
 [ERROR]  >>  Read the bug reporting guidelines here:
 [ERROR]  >>      http://crosstool-ng.github.io/support/ 
 ```
+
+## macSDK
+
+> 在使用macSDK下的lib库编译crosstool-ng时，会出现很多兼容性问题，对于这些问题，无需解决处理，有些问题修改sdk源码，在crosstool-ng中增加宏编译开关（部分只在顶层makefile生效，或者完全不生效，或者该crosstool-ng版本不支持等等）都仅仅是解决当前问题，且后续问题会越来越多，所以解决很累，可以确定是错误方向。因此找到正确的gcc/g++版本是关键。
