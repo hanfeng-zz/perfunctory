@@ -22,32 +22,31 @@ brew install autoconf automake bash binutils bison gawk git gnu-sed gnu-tar gett
 macOS下，crosstool-ng默认使用/Library/Developer/CommandLineTools/usr/bin下clang包装的gcc，g++,即使homebrew的路径优于mac系统路径，由于homebrew中gcc,g++是类似于gcc-12,g++-12，所以还是会调用mac下clang包装的gcc,g++，因此需要对homebrew中的gcc-12,g++-12进行软链接取别名，使crosstool-ng能正确调用，python3.11同理
 >
 
-- 设置 homebrew路径优先级高于系统/usr/bin路径
-
-    ```C 
-    export PATH=/opt/homebrew/opt/gcc@12/bin:$PATH
-    export PATH="$(brew --prefix python@3.11)/bin:$PATH"
-    Note:编译前还需要将gcc12的路径声明为最高优先级，编译期间会调用ar等工具，未声明会导致出错
-    ```
+### 设置路径优先级
+> homebrew路径优先级高于系统/usr/bin路径
+```C 
+export PATH=/opt/homebrew/opt/gcc@12/bin:$PATH
+export PATH="$(brew --prefix python@3.11)/bin:$PATH"
+Note:编译前还需要将gcc12的路径声明为最高优先级，编译期间会调用ar等工具，未声明会导致出错
+```
    
-- 设置gcc,g++版本
+### 设置gcc,g++版本
 
-    ``` C
+``` C
+ln -sf /opt/homebrew/bin/gcc-12 /opt/homebrew/bin/gcc  
+ln -sf /opt/homebrew/bin/g++-12 /opt/homebrew/bin/g++
 
-    ln -sf /opt/homebrew/bin/gcc-12 /opt/homebrew/bin/gcc  
-    ln -sf /opt/homebrew/bin/g++-12 /opt/homebrew/bin/g++
+Note:homebrew 是没有gcc的，只有类似gcc-12的gcc，所以需要创建软链接，并指定gcc版本
+```
+### 设置python版本
 
-    Note:homebrew 是没有gcc的，只有类似gcc-12的gcc，所以需要创建软链接，并指定gcc版本
-    ```
-- 设置python版本
+```C 
 
-    ```C 
-    
-    ln -sf /opt/homebrew/bin/python3.11 /opt/homebrew/bin/python3
-    ln -sf /opt/homebrew/bin/python3.11-config /opt/homebrew/bin/python3-config
+ln -sf /opt/homebrew/bin/python3.11 /opt/homebrew/bin/python3
+ln -sf /opt/homebrew/bin/python3.11-config /opt/homebrew/bin/python3-config
 
-    Note:see gcc
-    ```
+Note:see gcc
+```
 
 
 # 问题记录
