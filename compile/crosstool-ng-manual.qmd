@@ -1,6 +1,6 @@
 # 下载 & 手册
 
-> **下载所需压缩包**
+> **下载所需压缩包,crosstool-ng.1.28.0**
 
 - [官网下载](https://crosstool-ng.github.io)
 - [github下载](https://github.com/crosstool-ng/crosstool-ng)
