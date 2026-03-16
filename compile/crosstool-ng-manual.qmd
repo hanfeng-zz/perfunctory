@@ -1,0 +1,47 @@
+# 下载 & 手册
+
+> **下载所需压缩包**
+
+- [官网下载](https://crosstool-ng.github.io)
+- [github下载](https://github.com/crosstool-ng/crosstool-ng)
+- [官方手册](https://crosstool-ng.github.io/docs/)
+
+# Homebrew
+
+## 交叉编译工具安装
+
+```bash
+brew install autoconf automake bison flex gawk gnu-sed gnu-tar help2man libtool make ncurses dtc libelf binutils
+``` 
+
+## 将GNU工具路径加入PATH
+
+```bash
+export PATH="/opt/homebrew/opt/binutils/bin:$PATH"
+export PATH="/opt/homebrew/opt/make/libexec/gnubin:$PATH"
+export PATH="/opt/homebrew/opt/gnu-sed/libexec/gnubin:$PATH"
+```
+
+## 补充
+
+### Shell 搜索规则
+
+- Shell在搜索工具时，绝对不会自动递归查找 PATH 目录下的子目录.
+
+### Homebrew GNU 工具
+
+- Homebrew 安装的GNU工具为了不和系统冲突，通常带有 g 前缀（如 gobjcopy），或者存放在特定的私有目录。所以要确定所需要的工具有没有带G且有没有对应的软链接，没有手动创建。
+
+- 声明Homebrew GNU工具路径优于macOS路径
+
+# 安装
+
+> 1. 建议在代码路径下进行安装，这样不影响系统目录.  
+> 2. 在 crosstool-NG 的语境下，把 ./configure --enable-local 称为 "The Hacker’s way"（黑客方式），主要是因为它打破了 Linux 软件安装的“正统”规则，直接在源码目录下运行程序.
+
+```bash
+./configure --enable-local && make
+```
+
+# 使用
+
