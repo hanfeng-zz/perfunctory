@@ -1,0 +1,38 @@
+
+# 拉取镜像元数据失败
+
+
+- <mark/>制作镜像时，Docker Desktop Engine 可能会遇到以下错误:
+
+    ```txt
+    ➜  allwinner docker build -t ubuntu-allwinner .
+    [+] Building 121.4s (2/2) FINISHED                                                                                                                                                         docker:desktop-linux
+    => [internal] load build definition from Dockerfile                                                                                                                                                       0.0s
+    => => transferring dockerfile: 2.46kB                                                                                                                                                                     0.0s
+    => ERROR [internal] load metadata for docker.io/library/ubuntu:22.04                                                                                                                                    121.3s
+    ------
+    > [internal] load metadata for docker.io/library/ubuntu:22.04:
+    ------
+    Dockerfile:2
+    --------------------
+    1 |     # ===== 基础镜像（必须匹配 noble）=====
+    2 | >>> FROM ubuntu:22.04
+    3 |
+    4 |     # ===== 避免交互 =====
+    --------------------
+    ERROR: failed to build: failed to solve: ubuntu:22.04: failed to resolve source metadata for docker.io/library/ubuntu:22.04: unexpected status from HEAD request to http://hub-mirror.c.163.com/v2/library/ubuntu/manifests/22.04?ns=docker.io: 403 connecting to hub-mirror.c.163.com:80: connecting to hub-mirror.c.163.com:80: dial tcp: lookup hub-mirror.c.163.com: no such host
+    ```
+
+- <mark/>解决
+
+    <mark>是由于 Docker Desktop Engine 访问国外的docker hub 镜像仓库时被墙了，导致无法拉取镜像元数据。解决方法是更换 Docker Desktop Engine 的镜像源，使用国内的镜像源，在docker desktop engine的设置中添加以下配置：</mark>
+
+    ```json
+    "registry-mirrors": [
+        "https://docker.xuanyuan.me"
+    ]
+
+    ```
+
+- 参考链接  
+    [Docker国内镜像源加速](https://cloud.tencent.com/developer/article/2647590)
