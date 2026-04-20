@@ -1,5 +1,7 @@
 # 下载 & 手册
 
+-----
+
 > **下载所需压缩包,crosstool-ng.1.28.0**
 
 - [官网下载](https://crosstool-ng.github.io)
@@ -7,6 +9,8 @@
 - [官方手册](https://crosstool-ng.github.io/docs/)
 
 # Homebrew
+
+-----
 
 ## 交叉编译工具安装
 
@@ -36,6 +40,8 @@ export PATH="/opt/homebrew/opt/gnu-sed/libexec/gnubin:$PATH"
 
 # 安装
 
+-----
+
 > 1. 建议在代码路径下进行安装，这样不影响系统目录.  
 > 2. 在 crosstool-NG 的语境下，把 ./configure --enable-local 称为 "The Hacker’s way"（黑客方式），主要是因为它打破了 Linux 软件安装的“正统”规则，直接在源码目录下运行程序.
 
@@ -45,3 +51,56 @@ export PATH="/opt/homebrew/opt/gnu-sed/libexec/gnubin:$PATH"
 
 # 使用
 
+-----
+
+## 配置
+
+> 设置构建目标CPU，填写相应配置，主要将路径设置正确
+> note:
+
+```bash
+CT_LOCAL_TARBALLS_DIR="${PWD}/src"
+CT_WORK_DIR="${CT_TOP_DIR}/.build"
+CT_BUILD_TOP_DIR="${CT_WORK_DIR:-${CT_TOP_DIR}/.build}/${CT_HOST:+HOST-${CT_HOST}/}${CT_TARGET}"
+CT_BUILD_DIR="${CT_BUILD_TOP_DIR}/build"
+CT_PREFIX_DIR="${PWD}/_dist"
+```
+
+## 模块编译
+
+- 指定编译模块起始点：**ct-ng build RESTART=libc_headers**
+- 指定编译模块结束点：**ct-ng build STOP=libc_headers**
+- 仅编译指定模块：**ct-ng libc_headers** 等价于 **ct-ng build RESTART=libc_headers STOP=libc_headers**
+
+```bash 
+Available build steps, in order:
+  - companion_tools_for_build
+  - companion_libs_for_build
+  - binutils_for_build
+  - companion_tools_for_host
+  - companion_libs_for_host
+  - binutils_for_host
+  - libc_headers
+  - kernel_headers
+  - cc_core
+  - libc_main
+  - cc_for_build
+  - cc_for_host
+  - libc_post_cc
+  - companion_libs_for_target
+  - binutils_for_target
+  - debug
+  - test_suite
+  - finish
+```
+
+## 安装包下载
+
+> 提前下载安装包，编译期间不用再次下载，下载慢需要挂代理
+
+```bash
+./ct-ng source 
+```
+
+
+https://blog.csdn.net/lisemi/article/details/91045791
