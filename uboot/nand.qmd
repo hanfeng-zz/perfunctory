@@ -1,0 +1,40 @@
+# nand info
+
+```bash
+=> nand info  
+Device 0: nand0, sector size 128 KiB  
+  Page size       2048 b     
+  OOB size          64 b  
+  Erase size    131072 b  
+  subpagesize     2048 b  
+  options     0x40000200  
+  bbt options 0x    8000  
+```
+
+## 解析
+| 字段          | 数值               | 含义                  | 工程意义                |
+| ----------- | ---------------- | ------------------- | ------------------- |
+| Device      | nand0            | 第 0 个 NAND 设备       | 多 NAND 时用于区分        |
+| sector size | 128 KiB          | 擦除块大小（= erase size） | ⭐ 最小擦除单位            |
+| Page size   | 2048 B (2KB)     | 页大小                 | ⭐ 最小读写单位            |
+| OOB size    | 64 B             | 页外数据区               | 存 ECC / 坏块标记        |
+| Erase size  | 131072 B (128KB) | 擦除块大小               | ⭐ 和 sector size 一样  |
+| subpagesize | 2048 B           | 子页大小                | 与 page 一致，说明不支持更小粒度 |
+| options     | 0x40000200       | NAND 驱动特性标志         | 总线/ECC 等，驱动内部用      |
+| bbt options | 0x8000           | 坏块表（BBT）配置          | ⭐ 支持坏块管理            |
+
+## 地址规则
+| 规则      | 说明                            |
+| ------- | ----------------------------- |
+| NAND 地址 | 就是 offset（偏移）                 |
+| 对齐要求    | ⭐ 必须按 block（128KB）对齐          |
+| 示例合法地址  | 0x0 / 0x20000 / 0x40000 / ... |
+| 示例非法地址  | 0x12345（不对齐）                  |
+
+## 坏块机制
+| 项目          | 说明                    |
+| ----------- | --------------------- |
+| bbt options | 表示启用坏块表               |
+| 影响          | NAND 存在坏块             |
+| 结果          | ⭐ 逻辑地址 ≠ 物理地址         |
+| 处理          | U-Boot / Linux 自动跳过坏块 |

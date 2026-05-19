@@ -1,0 +1,191 @@
+
+# 文件
+
+I.MX6ULL, NXP ARM Cortex-A7架构的32位处理器
+
+|文件|路径|
+|------|-----|
+|u-boot.imx|uboot-path/|
+|zImage|linux-path/arch/arm/boot|
+|imx6ull-alientek-nand.dtb|linux-path/arch/arm/boot/dts|
+
+
+# tftp
+
+- 将ubuntu16.04编译文件传输到Windows主机目录上
+- Windows主机和开发板IP在同一网段
+- Windows主机上使用3CDaemons工具作为tftp服务器，并设置下载目录为编译文件所在目录
+
+
+# uboot
+
+## NAND FLASH烧录
+
+### IP设置
+
+ ```bash
+    setenv ipaddr 192.168.1.100
+    setenv ethaddr 00:01:00:02:00:03
+    setenv gatewayip 192.168.1.1 
+    setenv netmask 255.255.255.0 
+    setenv serverip 192.168.169
+    saveenv 
+
+    然后:
+    => ping 192.168.31.169
+    FEC1 Waiting for PHY auto negotiation to complete.... done
+    Using FEC1 device
+    host 192.168.31.169 is alive
+ ```
+
+
+### 烧录
+
+> **将编译好的u-boot.imx、zImage和imx6ull-alientek-nand.dtb文件通过tftp传输到开发板DDR3L上，并使用u-boot命令将它们烧录到NAND FLASH中.**
+
+- 环境变量
+```bash
+=> printenv
+baudrate=115200
+board_name=EVK
+board_rev=14X14
+bootargs=console=ttymxc0,115200 ubi.mtd=5 root=ubi0:rootfs rootfstype=ubifs mtdparts=gpmi-nand:4m(u-boot),128k(env),1m(logo),1m(dtb),8m(kernel),-(rootfs)
+bootcmd=nand read ${loadaddr} 0x620000 0x800000;nand read ${fdt_addr} ${fdt_offset} 0x20000;bootz ${loadaddr} - ${fdt_addr}
+bootcmd_mfg=run mfgtool_args;bootz ${loadaddr} ${initrd_addr} ${fdt_addr};
+bootdelay=1
+console=ttymxc0
+ethact=FEC1
+ethaddr=00:01:00:02:00:03
+ethprime=FEC
+fdt_addr=0x83000000
+fdt_high=0xffffffff
+fdt_offset=0x520000
+gatewayip=192.168.31.1
+initrd_addr=0x83800000
+initrd_high=0xffffffff
+ipaddr=192.168.31.100
+loadaddr=0x80800000
+logo_offset=0x420000
+logo_size=0x100000
+mfgtool_args=setenv bootargs console=${console},${baudrate} rdinit=/linuxrc g_mass_storage.stall=0 g_mass_storage.removable=1 g_mass_storage.file=/fat g_mass_storage.ro=1 g_mass_storage.idVendor=0x066F g_mass_storage.idProduct=0x37FF g_mass_storage.iSerialNumber="" mtdparts=gpmi-nand:4m(u-boot),128k(env),1m(logo),1m(dtb),8m(kernel),-(rootfs) clk_ignore_unused
+netmask=255.255.255.0
+panel=ATK-LCD-4.3-480x272
+serverip=192.168.31.169
+splashimage=0x88000000
+splashpos=m,m
+stderr=serial
+stdin=serial
+stdout=serial
+
+Environment size: 1264/65532 bytes
+
+```
+
+<mark>根据mtdparts参数得知一下内容</mark>
+
+1. 存储分布
+   - 0x00000000 - 0x003FFFFF: u-boot (4MB)
+   - 0x00400000 - 0x0041FFFF: 环境变量 (128KB)
+   - 0x00420000 - 0x0051FFFF: logo (1MB)
+   - 0x00520000 - 0x0061FFFF: dtb (1MB)
+   - 0x00620000 - 0x00E1FFFF: kernel (8MB)
+   - 0x00E20000 - 结束: rootfs (剩余空间)
+
+
+2. tftp传输
+    
+    > tftp ${loadaddr} uboot.imx  
+    > tftp ${loadaddr} zImage   
+    > tftp ${fdt_addr} imx6ull-alientek-nand.dtb  
+
+3. nand烧录
+
+    **先将uboot.imx tftp到DDR3L上，然后使用nand命令将其烧录到NAND FLASH的前4MB区域。重启验证uboot.imx是否正确。  
+    接着将dtb文件和zImage分别烧录到NAND FLASH的0x520000和0x620000地址，确保它们不会覆盖u-boot。**
+
+    > 
+    //写入u-boot到NAND FLASH的前4MB区域  
+    nand erase 0x0 0x400000    
+    nand write ${loadaddr} 0x0 0x400000  
+    //写入dtb文件到NAND FLASH的0x520000地址，大小为0x10000（1M）  
+    nand erase 0x520000 0x100000    
+    nand write ${fdt_addr} 0x520000 0x100000  
+    //写入zImage到NAND FLASH的0x620000地址，大小为0x800000（8M）    
+    nand erase 0x620000 0x800000    
+    nand write ${loadaddr} 0x620000 0x800000   
+    >
+4. nand命令解析
+
+    - nand info
+
+    
+# QA
+
+::: question
+**Q:** 环境变量设置的位置是存放在哪里？  
+**A:** 环境变量存储在 NAND FLASH 的特定区域，通常是一个独立分区或特定地址范围。具体位置取决于 u-boot 的配置与编译选项，可通过查看 u-boot 的源代码或文档确认。<mark> 在include/configs/mx6ullevk.h，后续再研究</mark>
+
+
+::: question
+**Q:** `nand` 命令  
+**A:** `nand` 命令是 u-boot 中用于操作 NAND FLASH 的命令集合。它提供了多种功能，如擦除、写入、读取和信息查询等。常用的子命令包括：
+
+- `nand info`：显示 NAND FLASH 的基本信息，如设备型号、页大小、块大小等。
+
+```bash
+=> nand info
+
+Device 0: nand0, sector size 128 KiB
+Page size       2048 b
+OOB size          64 b
+Erase size    131072 b
+subpagesize     2048 b
+options     0x40000200
+bbt options 0x    8000
+
+解析：
+- Device 0: nand0, sector size 128 KiB：表示第一个 NAND 设备（nand0）的扇区大小 为 128 KB。即NAND FLASH 的擦除块大小为 128 KB。
+- Page size 2048 b：每页大小为 2048 字节（2 KB）。一次读写操作的最小单位是一个页。
+- OOB size 64 b：每页的 OOB（Out-Of-Band）区域大小为 64 字节。用于EECC（错误纠正码）、坏块标记等元数据存储。
+- Erase size 131072 b：擦除块大小为 131072 字节（128 KB）。
+- subpagesize 2048 b：子页大小为 2048 字节（与页大小相同），表示不支持更小的subpage。
+- options 0x40000200：NAND 驱动特性/能力标志。
+- bbt options 0x8000：坏块表（BBT）的选项配置。
+
+```
+
+- `nand` read/write/erase 
+
+| 命令    | 作用            |
+| ----- | ------------- |
+| read  | NAND → DDR    |
+| write | DDR → NAND    |
+| erase | 擦除 NAND block |
+
+**特点: NAND 不能像内存一样直接写覆盖，需要先擦除后写入，因此在使用 `nand write` 命令前，必须先使用 `nand erase` 命令擦除目标区域。**
+    
+```bash
+nand read <ram_addr> <nand_offset> <size>
+nand write <ram_addr> <nand_offset> <size>
+nand erase <offset> <size>
+```
+
+::: question
+**Q:** 如何确认写入DDR3L的文件是否正确？
+**A:** 可以使用 `md`（memory display）命令查看 DDR3L 中指定地址的内容，并与原始文件进行比较。具体步骤如下：
+
+| 参数      | 含义        |
+| ------- | --------- |
+| `.b`    | byte（1字节） |
+| `.w`    | word（2字节） |
+| `.l`    | long（4字节） |
+| address | 内存地址      |
+| count   | 显示数量      |
+
+- 在Windows自己上使用HxD等十六进制编辑器打开原始文件，查看前几个字节的十六进制值。
+- 在u-boot命令行中使用 `md` 命令查看DDR3L中对应地址的内容
+
+
+::: question
+**Q:** 如何比对写入NAND FLASH的内容是否正确？
+**A:** 可以使用 `nand read` 命令将 NAND FLASH 中指定区域的数据读取到 DDR3L 中，然后使用 `md` 命令查看 DDR3L 中的数据，并与原始文件进行比较。或者使用`cmp`命令直接比较 DDR3L 中的数据与 NAND FLASH 中的数据是否一致。

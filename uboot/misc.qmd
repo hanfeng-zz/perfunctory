@@ -1,0 +1,55 @@
+
+# 
+
+
+# 备注
+
+## U-Boot 编译后常见生成文件（AI）
+
+| 文件名                            | 类型                   | 是否常见      | 作用                       | 是否最终烧录 |
+| ------------------------------ | -------------------- | --------- | ------------------------ | ------ |
+| `u-boot`                       | ELF 可执行文件            | 非常常见      | 带符号表的 ELF 文件，用于调试        | ❌      |
+| `u-boot.bin`                   | 纯二进制                 | 非常常见      | 去掉 ELF 头后的裸二进制           | ✅      |
+| `u-boot.img`                   | U-Boot Image         | 很常见       | 带 image header 的镜像       | ✅      |
+| `u-boot.srec`                  | Motorola S-record    | 较少        | 串口/JTAG 下载格式             | 有时     |
+| `u-boot.hex`                   | Intel HEX            | 较少        | HEX 格式镜像                 | 有时     |
+| `u-boot.map`                   | 链接映射文件               | 很常见       | 查看函数/变量地址                | ❌      |
+| `System.map`                   | 符号表                  | 很常见       | 符号与地址映射                  | ❌      |
+| `u-boot.sym`                   | 调试符号                 | 部分平台      | GDB 调试使用                 | ❌      |
+| `u-boot.cfg`                   | 配置结果                 | 常见        | Kconfig 最终配置展开           | ❌      |
+| `.config`                      | 配置文件                 | 非常常见      | menuconfig 后生成           | ❌      |
+| `include/autoconf.mk`          | 自动配置                 | 常见        | Makefile 使用              | ❌      |
+| `include/generated/autoconf.h` | 自动头文件                | 常见        | CONFIG 宏定义               | ❌      |
+| `MLO`                          | TI 平台 SPL            | TI 平台     | 第一阶段引导程序                 | ✅      |
+| `SPL`                          | SPL ELF              | 很常见       | Secondary Program Loader | ❌      |
+| `spl/u-boot-spl.bin`           | SPL bin              | 很常见       | 第一阶段启动程序                 | ✅      |
+| `spl/u-boot-spl`               | SPL ELF              | 很常见       | SPL 调试文件                 | ❌      |
+| `spl/u-boot-spl.map`           | SPL map              | 很常见       | SPL 地址分析                 | ❌      |
+| `tpl/u-boot-tpl.bin`           | TPL bin              | 部分平台      | Third Program Loader     | ✅      |
+| `u-boot-dtb.bin`               | 带 DTB 的 bin          | 很常见       | U-Boot + Device Tree     | ✅      |
+| `u-boot-nodtb.bin`             | 不带 DTB               | 常见        | 纯 U-Boot 本体              | 有时     |
+| `u-boot-dtb.img`               | 带 DTB image          | 常见        | 带头部镜像                    | ✅      |
+| `u-boot-with-spl.bin`          | SPL+U-Boot           | 部分平台      | 合并镜像                     | ✅      |
+| `u-boot.imx`                   | i.MX 专用镜像            | NXP i.MX  | 包含 IVT/DCD               | ✅      |
+| `u-boot.kwb`                   | Kirkwood 镜像          | Marvell   | 特定 SoC 格式                | ✅      |
+| `u-boot.sunxi`                 | Allwinner 镜像         | 全志平台      | 带 boot header            | ✅      |
+| `idbloader.img`                | Rockchip Loader      | 瑞芯微       | DDR init + SPL           | ✅      |
+| `trust.img`                    | ARM Trusted Firmware | 瑞芯微等      | TrustZone 固件             | ✅      |
+| `flash.bin`                    | 合并镜像                 | NXP/Intel | 完整烧录镜像                   | ✅      |
+| `fitImage`                     | FIT 镜像               | 较常见       | kernel/dtb/ramdisk 打包    | 有时     |
+| `u-boot.lds`                   | 链接脚本                 | 常见        | 决定内存布局                   | ❌      |
+| `env` 或 `uboot.env`            | 环境变量                 | 部分平台      | 默认环境变量                   | 有时     |
+
+
+
+
+
+
+
+
+
+
+
+
+# 链接
+- [the uboot documentation](https://docs.u-boot.org/en/stable/)
