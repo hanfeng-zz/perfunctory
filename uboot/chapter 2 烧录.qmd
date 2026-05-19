@@ -114,20 +114,17 @@ Environment size: 1264/65532 bytes
     nand erase 0x620000 0x800000    
     nand write ${loadaddr} 0x620000 0x800000   
     >
-4. nand命令解析
-
-    - nand info
 
     
 # QA
 
 ::: question
-**Q:** 环境变量设置的位置是存放在哪里？  
+**Q:** <u>__环境变量设置的位置是存放在哪里？__</u>    
 **A:** 环境变量存储在 NAND FLASH 的特定区域，通常是一个独立分区或特定地址范围。具体位置取决于 u-boot 的配置与编译选项，可通过查看 u-boot 的源代码或文档确认。<mark> 在include/configs/mx6ullevk.h，后续再研究</mark>
 
 
 ::: question
-**Q:** `nand` 命令  
+**Q:** <u>__`nand` 命令__</u>  
 **A:** `nand` 命令是 u-boot 中用于操作 NAND FLASH 的命令集合。它提供了多种功能，如擦除、写入、读取和信息查询等。常用的子命令包括：
 
 - `nand info`：显示 NAND FLASH 的基本信息，如设备型号、页大小、块大小等。
@@ -162,7 +159,7 @@ bbt options 0x    8000
 | write | DDR → NAND    |
 | erase | 擦除 NAND block |
 
-**特点: NAND 不能像内存一样直接写覆盖，需要先擦除后写入，因此在使用 `nand write` 命令前，必须先使用 `nand erase` 命令擦除目标区域。**
+_<mark>特点</mark>: NAND 不能像内存一样直接写覆盖，需要先擦除后写入，因此在使用 `nand write` 命令前，必须先使用 `nand erase` 命令擦除目标区域._
     
 ```bash
 nand read <ram_addr> <nand_offset> <size>
@@ -170,8 +167,10 @@ nand write <ram_addr> <nand_offset> <size>
 nand erase <offset> <size>
 ```
 
+
+
 ::: question
-**Q:** 如何确认写入DDR3L的文件是否正确？
+**Q:** <u>__如何确认写入DDR3L的文件是否正确?__</u>  
 **A:** 可以使用 `md`（memory display）命令查看 DDR3L 中指定地址的内容，并与原始文件进行比较。具体步骤如下：
 
 | 参数      | 含义        |
@@ -187,5 +186,6 @@ nand erase <offset> <size>
 
 
 ::: question
-**Q:** 如何比对写入NAND FLASH的内容是否正确？
+
+**Q:** <u>__如何比对写入NAND FLASH的内容是否正确?__</u>  
 **A:** 可以使用 `nand read` 命令将 NAND FLASH 中指定区域的数据读取到 DDR3L 中，然后使用 `md` 命令查看 DDR3L 中的数据，并与原始文件进行比较。或者使用`cmp`命令直接比较 DDR3L 中的数据与 NAND FLASH 中的数据是否一致。
