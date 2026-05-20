@@ -8,6 +8,7 @@ I.MX6ULL, NXP ARM Cortex-A7架构的32位处理器
 |u-boot.imx|uboot-path/|
 |zImage|linux-path/arch/arm/boot|
 |imx6ull-alientek-nand.dtb|linux-path/arch/arm/boot/dts|
+|rootfs.ubi|buildroot-path/output/images|
 
 
 # tftp
@@ -326,3 +327,8 @@ nand erase <offset> <size>
 
 **Q:** <u>__如何比对写入NAND FLASH的内容是否正确?__</u>  
 **A:** 可以使用 `nand read` 命令将 NAND FLASH 中指定区域的数据读取到 DDR3L 中，然后使用 `md` 命令查看 DDR3L 中的数据，并与原始文件进行比较。或者使用`cmp`命令直接比较 DDR3L 中的数据与 NAND FLASH 中的数据是否一致。
+
+
+::: question
+**Q:** <u>__buildroot编译后的烧录image为什么用.ubi，不使用.ubifs__</u>  
+**A:** `.ubi` 是 UBI（Unsorted Block Images）的镜像格式，包含了UBI的管理信息（如EC Header和VID Header），适用于直接烧录到NAND FLASH中。而 `.ubifs` 是 UBIFS（UBI File System）的文件系统镜像，不包含UBI的管理信息，通常需要先烧录为UBI格式后才能使用。因此，直接烧录到NAND FLASH中时，使用`.ubi`格式更合适。
