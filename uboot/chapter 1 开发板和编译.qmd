@@ -61,7 +61,11 @@ make all
 
 ```
 
-
 ### buildroot 
 
 
+```bash
+make imx6ulevk_defconfig
+make menuconfig
+make
+```
