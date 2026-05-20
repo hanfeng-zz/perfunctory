@@ -83,37 +83,174 @@ Environment size: 1264/65532 bytes
 
 <mark>根据mtdparts参数得知一下内容</mark>
 
-1. 存储分布
-   - 0x00000000 - 0x003FFFFF: u-boot (4MB)
-   - 0x00400000 - 0x0041FFFF: 环境变量 (128KB)
-   - 0x00420000 - 0x0051FFFF: logo (1MB)
-   - 0x00520000 - 0x0061FFFF: dtb (1MB)
-   - 0x00620000 - 0x00E1FFFF: kernel (8MB)
-   - 0x00E20000 - 结束: rootfs (剩余空间)
+#### 存储分布
+
+- 0x00000000 - 0x003FFFFF: u-boot (4MB)
+- 0x00400000 - 0x0041FFFF: 环境变量 (128KB)
+- 0x00420000 - 0x0051FFFF: logo (1MB)
+- 0x00520000 - 0x0061FFFF: dtb (1MB)
+- 0x00620000 - 0x00E1FFFF: kernel (8MB)
+- 0x00E20000 - 0x1F1E0000 结束: rootfs (剩余空间)
 
 
-2. tftp传输
+#### tftp传输
     
-    > tftp ${loadaddr} uboot.imx  
-    > tftp ${loadaddr} zImage   
-    > tftp ${fdt_addr} imx6ull-alientek-nand.dtb  
+> tftp ${loadaddr} uboot.imx  
+> tftp ${loadaddr} zImage   
+> tftp ${fdt_addr} imx6ull-alientek-nand.dtb  
+> tftp ${loadaddr} rootfs.ubi
 
-3. nand烧录
+#### nand烧录
 
-    **先将uboot.imx tftp到DDR3L上，然后使用nand命令将其烧录到NAND FLASH的前4MB区域。重启验证uboot.imx是否正确。  
-    接着将dtb文件和zImage分别烧录到NAND FLASH的0x520000和0x620000地址，确保它们不会覆盖u-boot。**
+**先将uboot.imx tftp到DDR3L上，然后使用nand命令将其烧录到NAND FLASH的前4MB区域。重启验证uboot.imx是否正确。  
+接着将dtb文件和zImage分别烧录到NAND FLASH的0x520000和0x620000地址，确保它们不会覆盖u-boot。  
+验证zImage和dtb正确后，最后烧录rootfs到NAND FLASH的剩余空间。**
+
+```bash
+- **写入u-boot到NAND FLASH的前4MB区域**  
+nand erase 0x0 0x400000    
+nand write ${loadaddr} 0x0 0x400000
+
+- **写入dtb文件到NAND FLASH的0x520000地址，大小为0x10000（1M）**  
+nand erase 0x520000 0x100000    
+nand write ${fdt_addr} 0x520000 0x100000 
+
+- **写入zImage到NAND FLASH的0x620000地址，大小为0x800000（8M）**    
+nand erase 0x620000 0x800000    
+nand write ${loadaddr} 0x620000 0x800000
+
+- **写入rootfs到NAND FLASH的0xE20000地址，大小为剩余空间0x1F1E0000**    
+nand erase 0xE20000 0x1F1E0000  
+nand write 0x80800000 0xE20000 ${filesize}  
+```
+
+
+**Note:**
+如果是按照tftp -> nand erase -> nand write的步骤进行烧录,在nand wirte 时，可不使用固定大小空间，而使用命令 `nand write ${loadaddr} 0x620000 ${filesize}`，这样可以根据实际传输文件的大小来写入，避免写入过多无效数据。`${filesize}` 是一个环境变量，表示上一次 tftp 传输的文件大小，由tftp命令自动设置。
+
+
+# 问题 & 解决
+
+## rootfs
+
+### UBIFS:sub-page size错误
+
+```bash
+[    4.182232] Key type dns_resolver registered
+[    4.212085] ubi0: attaching mtd5
+[    4.287087] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 64 bytes from PEB 512:0, read only 64 bytes, retry
+[    4.298616] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 64 bytes from PEB 512:0, read only 64 bytes, retry
+[    4.310104] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 64 bytes from PEB 512:0, read only 64 bytes, retry
+[    4.321601] ubi0 error: ubi_io_read: error -74 (ECC error) while reading 64 bytes from PEB 512:0, read 64 bytes 还是出同样的问题
+```
+
+可以判定UBI/UBIFS 读取 NAND 时发现 ECC 校验失败
+
+**1. 烧录错误引发OOB/ECC不匹配**
+
+> nand write 和 nand write.trimffs 都试过，不是烧录问题
+
+**2. buildroot 参数错误**
+
+> BR2_TARGET_ROOTFS_UBI_SUBSIZE=2048 更改后成功
+
+### UBIFS:logical eraseblock size错误
+
+```bash
+ubi0: attaching mtd5
+[    4.457344] random: nonblocking pool is initialized
+[    4.757643] ubi0: scanning is finished
+[    4.774403] ubi0: attached mtd5 (name "rootfs", size 497 MiB)
+[    4.780183] ubi0: PEB size: 131072 bytes (128 KiB), LEB size: 126976 bytes
+[    4.787160] ubi0: min./max. I/O unit sizes: 2048/2048, sub-page size 2048
+[    4.793992] ubi0: VID header offset: 2048 (aligned 2048), data offset: 4096
+[    4.800967] ubi0: good PEBs: 3979, bad PEBs: 4, corrupted PEBs: 0
+[    4.807138] ubi0: user volume: 1, internal volumes: 1, max. volumes count: 128
+[    4.814458] ubi0: max/mean erase counter: 1/0, WL threshold: 4096, image sequence number: 1985089798
+[    4.823632] ubi0: available PEBs: 0, total reserved PEBs: 3979, PEBs reserved for bad PEB handling: 76
+[    4.832963] ubi0: background thread "ubi_bgt0d" started, PID 87
+[    4.838952] dhd_module_init in
+[    4.844224] input: gpio_keys@0 as /devices/platform/gpio_keys@0/input/input2
+[    4.854733] snvs_rtc 20cc000.snvs:snvs-rtc-lp: setting system clock to 1970-01-01 00:00:01 UTC (1)
+[    4.887020] gpio_dvfs: disabling
+[    4.890292] can-3v3: disabling
+[    4.896665] ALSA device list:
+[    4.899662]   #0: wm8960-audio
+[    4.909874] UBIFS error (ubi0:0 pid 1): validate_sb: LEB size mismatch: 129024 in superblock, 126976 real
+[    4.919662] UBIFS error (ubi0:0 pid 1): validate_sb: bad superblock, error 1
+[    4.927580]  magic     
+```
+
+| 名称  | 全称                   | 理解    |
+| --- | -------------------- | ----- |
+| PEB | Physical Erase Block | 物理擦除块，NAND真实硬件块 |
+| LEB | Logical Erase Block  | 逻辑擦除块，UBI提供给UBIFS使用的逻辑块 |
+
+| 内容         | 作用       |
+| ---------- | -------- |
+| EC Header  | 擦写计数     |
+| VID Header | volume信息 |
+
+
+
+| LEB size               | Dec     |Hex|
+| ---------------- | ------ |----|
+| 镜像里的     | 129024 |0x1F800|
+| NAND 实际 | 126976 |0x1F000|
+
+
+我的`NAND FLASH` 1个PEB = 128Kib = 131072 = 0x20000,EC 和VID 是属于UBI的管理信息，所以只有LEB才是真正给UBIFS使用的空间，即 1PEB - EC - VID = 1LEB = 0x1F000，所以需要修改buildroot中BR2_TARGET_ROOTFS_UBIFS_LEBSIZE=0x1f000
+
+## 编译
+
+### 编译rootfs.ubi时卡死
+
+```bash
+错误打印
+
+>>>   Generating filesystem image rootfs.ubi
+mkdir -p /home/hf/alientek/buildroot-2019.02.6/output/images
+rm -rf /home/hf/alientek/buildroot-2019.02.6/output/build/buildroot-fs/ubi
+mkdir -p /home/hf/alientek/buildroot-2019.02.6/output/build/buildroot-fs/ubi
+rsync -auH --exclude=/THIS_IS_NOT_YOUR_ROOT_FILESYSTEM /home/hf/alientek/buildroot-2019.02.6/output/target/ /home/hf/alientek/buildroot-2019.02.6/output/build/buildroot-fs/ubi/target
+echo '#!/bin/sh' > /home/hf/alientek/buildroot-2019.02.6/output/build/buildroot-fs/ubi/fakeroot
+echo "set -e" >> /home/hf/alientek/buildroot-2019.02.6/output/build/buildroot-fs/ubi/fakeroot
+echo "chown -h -R 0:0 /home/hf/alientek/buildroot-2019.02.6/output/build/buildroot-fs/ubi/target" >> /home/hf/alientek/buildroot-2019.02.6/output/build/buildroot-fs/ubi/fakeroot
+PATH="/home/hf/alientek/buildroot-2019.02.6/output/host/bin:/home/hf/alientek/buildroot-2019.02.6/output/host/sbin:/home/hf/bin:/home/hf/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin" /home/hf/alientek/buildroot-2019.02.6/support/scripts/mkusers /home/hf/alientek/buildroot-2019.02.6/output/build/buildroot-fs/full_users_table.txt /home/hf/alientek/buildroot-2019.02.6/output/build/buildroot-fs/ubi/target >> /home/hf/alientek/buildroot-2019.02.6/output/build/buildroot-fs/ubi/fakeroot
+echo "/home/hf/alientek/buildroot-2019.02.6/output/host/bin/makedevs -d /home/hf/alientek/buildroot-2019.02.6/output/build/buildroot-fs/full_devices_table.txt /home/hf/alientek/buildroot-2019.02.6/output/build/buildroot-fs/ubi/target" >> /home/hf/alientek/buildroot-2019.02.6/output/build/buildroot-fs/ubi/fakeroot
+printf '   \n' >> /home/hf/alientek/buildroot-2019.02.6/output/build/buildroot-fs/ubi/fakeroot
+printf '        sed '\''s;BR2_ROOTFS_UBIFS_PATH;/home/hf/alientek/buildroot-2019.02.6/output/images/rootfs.ubifs;'\'' fs/ubi/ubinize.cfg > /home/hf/alientek/buildroot-2019.02.6/output/build/ubinize.cfg\n /home/hf/alientek/buildroot-2019.02.6/output/host/sbin/ubinize -o /home/hf/alientek/buildroot-2019.02.6/output/images/rootfs.ubi -m 0x800 -p 0x20000 -s 2048  /home/hf/alientek/buildroot-2019.02.6/output/build/ubinize.cfg\n      rm /home/hf/alientek/buildroot-2019.02.6/output/build/ubinize.cfg\n' >> /home/hf/alientek/buildroot-2019.02.6/output/build/buildroot-fs/ubi/fakeroot
+chmod a+x /home/hf/alientek/buildroot-2019.02.6/output/build/buildroot-fs/ubi/fakeroot
+PATH="/home/hf/alientek/buildroot-2019.02.6/output/host/bin:/home/hf/alientek/buildroot-2019.02.6/output/host/sbin:/home/hf/bin:/home/hf/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin" FAKEROOTDONTTRYCHOWN=1 /home/hf/alientek/buildroot-2019.02.6/output/host/bin/fakeroot -- /home/hf/alientek/buildroot-2019.02.6/output/build/buildroot-fs/ubi/fakeroot
+rootdir=/home/hf/alientek/buildroot-2019.02.6/output/build/buildroot-fs/ubi/target
+table='/home/hf/alientek/buildroot-2019.02.6/output/build/buildroot-fs/full_devices_table.txt
+
+在生成rootfs.ubi时，编译过程卡这里不执行
+```
+
+过程分析：
+
+- fakeroot 死锁 / 兼容问题
+
+    > 使用TOP命令没看见相关进程
+- buildroot兼容问题
 
     > 
-    //写入u-boot到NAND FLASH的前4MB区域  
-    nand erase 0x0 0x400000    
-    nand write ${loadaddr} 0x0 0x400000  
-    //写入dtb文件到NAND FLASH的0x520000地址，大小为0x10000（1M）  
-    nand erase 0x520000 0x100000    
-    nand write ${fdt_addr} 0x520000 0x100000  
-    //写入zImage到NAND FLASH的0x620000地址，大小为0x800000（8M）    
-    nand erase 0x620000 0x800000    
-    nand write ${loadaddr} 0x620000 0x800000   
+        1. Dynamic using devtmpfs + mdev 改为 only devtmpfs
+        2. System configuration  ---> 
+                Path to the permission tables
+                Path to the device tables 清空system/device_table.txt
+        3. 升级buildroot版本到2020.02.3和降级到2018.02测试兼容问题
+        4. 清空full_devices_table.txt改为empty
+        5. 检查UBIF相关参数
+        6. 手动检查busybox配置然后编译 -> make busybox-menuconfig
     >
+- 并行编译等问题
+
+    > 使用make -j1进行单线程编译，避免并行编译导致的资源竞争问题
+    > 编译前使用make clean清理之前的编译产物，确保环境干净
+
+**解决方法:** 以上都不是问题核心，应该是`make clean`无法清除相关编译产物，需要使用`make distclean`,然后重新编译
 
     
 # QA
