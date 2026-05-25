@@ -1,0 +1,127 @@
+
+
+
+# 网络音频
+
+| 公司/协议     | 特点          |
+| --------- | ----------- |
+| Dante     | Audinate 私有 |
+| RAVENNA   | 开放          |
+| Livewire+ | Axia        |
+| Q-LAN     | QSC         |
+
+<mark>由于这些音视频协议公司使用的采样率是48kHz或96kHz，因此在PTP的精度最小位1 000 000 000 / 48 000 = 20 833us</mark>
+
+
+
+# 协议详细介绍
+
+
+## AES67
+
+
+<mark>Audio Engineering Society 的 AES67 是“网络音频互通标准”，而 ALC NetworX 的 RAVENNA 是基于 PTP/RTP 实现的完整网络音频系统，并且天然兼容 AES67。</mark>
+
+### 功能
+| 内容        | 协议           |
+| --------- | ------------ |
+| 时钟同步      | IEEE1588v1/v2 |
+| 音频传输      | RTP          |
+| 编码        | PCM          |
+| 采样率       | 48k/96k      |
+| SDP       | 流描述          |
+| Multicast | IP组播         |
+|IMGP| IGMPv2|
+
+### QOS
+
+| 流量类型   | 协议/内容                   | DSCP值  | DSCP名称                      | 交换机队列优先级    | 作用              |
+| ------ | ----------------------- | ------ | --------------------------- | ----------- | --------------- |
+| 时钟同步流量 | PTP（IEEE1588）           | 46     | EF（Expedited Forwarding）    | 最高（Queue 4） | 保证全网统一时钟，减少同步抖动 |
+| 音频流量   | RTP Audio（AES67音频包）     | 34     | AF41（Assured Forwarding 41） | 次高（Queue 3） | 保证实时音频低延迟、低丢包   |
+| 普通业务流量 | SSH / Web / FTP / 管理数据等 | 其它DSCP | Best Effort等                | 最低（Queue 0） | 普通网络通信          |
+
+### PTP字段
+
+| 字段 | default ||
+| ----- | ----- | ----- |
+|组播|224.0.1.129||
+|Domain| 0 ||
+|sync intv|2^0| 推荐<2^-1|
+|annc intv|2^1||
+|annc timeout|3||
+|delay req|2^0||
+|Prioirty1|master 128,slave 255||
+|clockclass|device||
+|accuracy|device||
+|variance|device||
+|Priority 2|device||
+
+
+## RAVENNA
+
+## 功能
+
+| 内容     | 协议/技术                      | 作用         |
+| ------ | -------------------------- | ---------- |
+| 时钟同步   | IEEE1588v1,v2.1, <mark>don't support v2</mark>,但是由于1588协议都是相互兼容的，理论上应该是能使用2008版本的，需要具体问题具体对待等               | 全网统一采样时钟   |
+| 音频传输   | RTP                        | 实时传输PCM音频  |
+| 网络传输   | UDP/IP                     | 基于标准以太网/IP |
+| 流描述    | SDP                        | 描述音频流参数    |
+| 流发现    | SAP                        | 自动发现音频流    |
+| 组播传输   | Multicast                  | 一路音频多设备接收  |
+| QoS    | DSCP/802.1p                | 保证实时低延迟    |
+| 设备同步   | PTPv2 Two-Step             | 广播级同步精度    |
+| 媒体时钟恢复 | Media Clock Recovery       | 从PTP恢复采样节拍 |
+| 广播兼容   | AES67/ST2110-30            | 广播音频互通     |
+| 低延迟    | 小Buffer RTP                | 实时音频传输     |
+| 高精度时间戳 | Hardware Timestamp         | 降低jitter   |
+| 大规模网络  | Boundary/Transparent Clock | 提升同步稳定性    |
+| 冗余网络   | SMPTE ST2022-7（可选）         | 主备链路无缝切换   |
+
+### PTP字段
+
+16pkt/s
+
+需要使用minorsdoid，2019协议内容，需要看下具体应用方式，应该是配置隔离，仅domian不适合音视频领域
+
+使用2019 security 字段，需要了解
+
+slave 端口 tlv解析
+
+
+### AES67 media profile & SMPTE ST2059-2 profile
+
+see PTPv2.1-Meinberg-PTP-in-WAN.pdf page7
+
+
+https://en.wikipedia.org/wiki/SMPTE_2059
+
+https://en.wikipedia.org/wiki/SMPTE_2110#cite_note-6
+
+
+## Dante
+
+https://support.getdante.com/hc/en-gb/articles/5508252986655-Dante-Devices-PTP-Clocking-Support
+https://www.youtube.com/watch?v=HgE7FhNB32M
+
+```bash
+MPTE ST 2059 需要了解,广播行业
+| 标准       | 内容             |
+| -------- | -------------- |
+| ST2059-1 | 时间与传统广播同步关系    |
+| ST2059-2 | PTP Profile 定义 |
+```
+
+# qita 
+
+
+RAVENNA uses DNS-SD20 for discovery and RTSP21 for SDP transfer
+ Livewire uses a proprietary protocol, but also supports the RAVENNA method
+ Dante uses different methods – a proprietary method based on mDNS22 for native stream
+operation and SAP23 for AES67 formatted streams.
+Since Dante devices don’t have means for manual read-out or entry of SDP data, there is no
+practical way to establish connections between Dante devices with activated AES67 mode and any
+
+
+以前怎么搞的，现在怎么处理
