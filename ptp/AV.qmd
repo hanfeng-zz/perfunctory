@@ -125,3 +125,62 @@ practical way to establish connections between Dante devices with activated AES6
 
 
 以前怎么搞的，现在怎么处理
+
+
+
+ all locally generated media clocks will have the same frequency (i.e. 48 kHz) and
+they may even be accurately phase-locked to each other. 所以是20833us,超过这个音频撕裂或者画面撕裂
+
+UUID 是什么
+
+subdomian如何计算，怎么使用，在报文哪个位置
+
+
+129，130，131，132 UDP 组播地址
+
+
+https://www.ptptrackhound.com/index.html#/home
+
+
+
+
+
+https://www.ravenna-network.com/aes67-practical-guide/   重要
+
+
+
+1、介绍各个音频是什么，开源OR闭源
+
+
+
+
+➜  1588 sudo ./ptptrackhound_2.2.2_x86_64.run
+Verifying archive integrity...  100%   MD5 checksums are OK. All good.
+Uncompressing PTP Track Hound v2  100%
+You are about to install PTP Track Hound v2.
+PTP Track Hound will be installed as launchd compliant system-level daemon.
+Do you want to continue?
+1) Yes
+2) No
+#? 1
+Do you want to run PTP Track Hound automatically at system startup?
+1) Yes
+2) No
+#? 2
+=========================================================================
+PTP Track Hound v2 has been installed, successfully.
+ ==> If you want to use PTP Track Hound in Solo Mode (like v1),
+     simply run the application 'ptpTrackHound2'.
+ ==> If you want to use PTP Track Hound as background capture service:
+   1. [optional] Generate a self-signed certificate or a CSR for your
+      trusted CA for HTTPS communication with "trackhound-certgen".
+   2. [optional] Run the terminal based config utility
+      "trackhound-config" to create a complete service configuration:
+      "trackhound-config -o /etc/ptpTrackHound2/th2-config.json"
+   3. Once you are ready to go, start the capture service:
+      "launchctl start com.meinberg.ptpTrackHound2"
+   4. Open the browser of your choice and connect to the web interface.
+      By default, it will be accessible via http://127.0.0.1:80.
+      Default credentials: "trackhound" (User), "woof" (Password)
+Have fun using PTP Track Hound.
+If you want to uninstall, run "trackhound-uninstall" (as root).
