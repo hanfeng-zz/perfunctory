@@ -1,6 +1,8 @@
 ---
 title: "Checksum 与 FCS 的区别"
-format: html
+format:
+  html: default
+  pdf: default
 ---
 
 # Checksum 与 FCS：为什么 FCS 校验完整报文后，还有其他校验？
