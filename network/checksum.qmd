@@ -2,7 +2,9 @@
 title: "Checksum 与 FCS 的区别"
 format:
   html: default
-  pdf: default
+  pdf:
+    latex-engine: lualatex
+    include-in-header: checksum-fonts.tex
 ---
 
 # Checksum 与 FCS：为什么 FCS 校验完整报文后，还有其他校验？
