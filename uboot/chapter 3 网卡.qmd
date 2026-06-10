@@ -1,0 +1,155 @@
+
+> 配置第二个网卡
+
+# 参考文件
+
+- IMX6ULL数据手册(工业级).pdf
+- IMX6ULL勘误手册.pdf
+- IMX6ULL参考手册.pdf
+
+# 底板原理图
+
+- 网卡
+
+eth1: phyId 0
+
+eth2: phyId 1
+
+![](./pictures/eth1.png)
+
+![](./pictures/eth2.png)
+
+- 扣板
+
+原理图上的 J1_1 ~ 60和J2_1 ~ 60在扣板上都能看到标识.
+
+ENET2_TX_CLK引脚在CPU标注的是D17(page 117)在数据手册中，刚好对应j1_31这个扣板引脚.
+
+<mark/>Note: 类似 J1, J2 的扣板引脚在数据手册中是没有的，只有在原理图上才能看到对应关系.</mark>
+
+![](./pictures/core.png)
+
+![](./pictures/cpu.png)
+
+# uboot
+
+<mark/>目的是否能在uboot下启动第二个网卡eth1</mark>
+
+- defconfig文件参考的是`mx6ull_14x14_ddr256_nand_defconfig`文件，内容为
+CONFIG_SYS_EXTRA_OPTIONS="IMX_CONFIG=board/freescale/mx6ullevk/imximage-ddr256.cfg,SYS_USE_NAND"，找到这个路径.
+
+- 进入`board/freescale/mx6ullevk`目录，找到`mx6ullevk.c`文件
+
+- 找到`boart_eth_init`函数,发现需要<mark/>CONFIG_FEC_ENET_DEV, CONFIG_FEC_MXC_PHYADDR, IMX_FEC_BASE</mark>这三个宏,但是在2016这个uboot版本中，.config文件中没有这三个宏的定义，所以需要确认宏定义位置
+
+```c
+
+int board_eth_init(bd_t *bis)
+{
+	setup_iomux_fec(CONFIG_FEC_ENET_DEV);
+
+	return fecmxc_initialize_multi(bis, CONFIG_FEC_ENET_DEV,
+				       CONFIG_FEC_MXC_PHYADDR, IMX_FEC_BASE);
+}
+
+```
+
+- 在`board/freescale/mx6ullevk/imximage-ddr256.cfg.cfgtmp`和/`board/freescale/mx6ullevk/.mx6ullevk.o.cmd`文件中都发现有 `include/configs/mx6ullevk.h`
+
+- 在`include/configs/mx6ullevk.h`文件中，发现有这三个宏的定义,使能的是ENET2_BASE_ADDR，<mark/>所以确认是否可以通过修改`board_eth_init`来创建网卡</mark>
+
+```c 
+#ifdef CONFIG_CMD_NET
+#define CONFIG_CMD_PING
+#define CONFIG_CMD_DHCP
+#define CONFIG_CMD_MII
+#define CONFIG_FEC_MXC
+#define CONFIG_MII
+
+#define CONFIG_FEC_ENET_DEV		1
+
+#if (CONFIG_FEC_ENET_DEV == 0)
+#define IMX_FEC_BASE			ENET_BASE_ADDR
+#define CONFIG_FEC_MXC_PHYADDR          0x0
+#define CONFIG_FEC_XCV_TYPE             RMII
+#elif (CONFIG_FEC_ENET_DEV == 1)
+#define IMX_FEC_BASE			ENET2_BASE_ADDR
+#define CONFIG_FEC_MXC_PHYADDR		0x1
+#define CONFIG_FEC_XCV_TYPE		RMII
+#endif
+#define CONFIG_ETHPRIME			"FEC"
+
+#define CONFIG_PHYLIB
+#define CONFIG_PHY_SMSC
+#endif
+```
+
+
+- 在`setup_iomux_fec`函数中，发现fec_id来创建不同的网卡，但是结构体`fec1_pads`和`fec2_pads`的定义中对`MX6_PAD_GPIO1_IO06__ENET1_MDIO`和`MX6_PAD_GPIO1_IO07__ENET1_MDC`这两个引脚的复用配置是一样的，所以能够确定只能创建一个网卡。
+
+
+```c 
+static iomux_v3_cfg_t const fec1_pads[] = {
+	MX6_PAD_GPIO1_IO06__ENET1_MDIO | MUX_PAD_CTRL(MDIO_PAD_CTRL),
+	MX6_PAD_GPIO1_IO07__ENET1_MDC | MUX_PAD_CTRL(ENET_PAD_CTRL),
+	MX6_PAD_ENET1_TX_DATA0__ENET1_TDATA00 | MUX_PAD_CTRL(ENET_PAD_CTRL),
+	MX6_PAD_ENET1_TX_DATA1__ENET1_TDATA01 | MUX_PAD_CTRL(ENET_PAD_CTRL),
+	MX6_PAD_ENET1_TX_EN__ENET1_TX_EN | MUX_PAD_CTRL(ENET_PAD_CTRL),
+	MX6_PAD_ENET1_TX_CLK__ENET1_REF_CLK1 | MUX_PAD_CTRL(ENET_CLK_PAD_CTRL),
+	MX6_PAD_ENET1_RX_DATA0__ENET1_RDATA00 | MUX_PAD_CTRL(ENET_PAD_CTRL),
+	MX6_PAD_ENET1_RX_DATA1__ENET1_RDATA01 | MUX_PAD_CTRL(ENET_PAD_CTRL),
+	MX6_PAD_ENET1_RX_ER__ENET1_RX_ER | MUX_PAD_CTRL(ENET_PAD_CTRL),
+	MX6_PAD_ENET1_RX_EN__ENET1_RX_EN | MUX_PAD_CTRL(ENET_PAD_CTRL),
+	MX6_PAD_SNVS_TAMPER7__GPIO5_IO07 | MUX_PAD_CTRL(NO_PAD_CTRL),		/* ETH1 RESET PIN */
+};
+
+static iomux_v3_cfg_t const fec2_pads[] = {
+	MX6_PAD_GPIO1_IO06__ENET2_MDIO | MUX_PAD_CTRL(MDIO_PAD_CTRL),
+	MX6_PAD_GPIO1_IO07__ENET2_MDC | MUX_PAD_CTRL(ENET_PAD_CTRL),
+
+	MX6_PAD_ENET2_TX_DATA0__ENET2_TDATA00 | MUX_PAD_CTRL(ENET_PAD_CTRL),
+	MX6_PAD_ENET2_TX_DATA1__ENET2_TDATA01 | MUX_PAD_CTRL(ENET_PAD_CTRL),
+	MX6_PAD_ENET2_TX_CLK__ENET2_REF_CLK2 | MUX_PAD_CTRL(ENET_CLK_PAD_CTRL),
+	MX6_PAD_ENET2_TX_EN__ENET2_TX_EN | MUX_PAD_CTRL(ENET_PAD_CTRL),
+
+	MX6_PAD_ENET2_RX_DATA0__ENET2_RDATA00 | MUX_PAD_CTRL(ENET_PAD_CTRL),
+	MX6_PAD_ENET2_RX_DATA1__ENET2_RDATA01 | MUX_PAD_CTRL(ENET_PAD_CTRL),
+	MX6_PAD_ENET2_RX_EN__ENET2_RX_EN | MUX_PAD_CTRL(ENET_PAD_CTRL),
+	MX6_PAD_ENET2_RX_ER__ENET2_RX_ER | MUX_PAD_CTRL(ENET_PAD_CTRL),
+	MX6_PAD_SNVS_TAMPER8__GPIO5_IO08 | MUX_PAD_CTRL(NO_PAD_CTRL),		/* ETH2 RESET PIN */
+};
+
+
+static void setup_iomux_fec(int fec_id)
+{
+	if (fec_id == 0){
+		imx_iomux_v3_setup_multiple_pads(fec1_pads,
+						 ARRAY_SIZE(fec1_pads));
+        gpio_direction_output(ENET1_RESET, 1);
+        gpio_set_value(ENET1_RESET, 0);
+	mdelay(20);
+        gpio_set_value(ENET1_RESET, 1);
+	} else {
+		imx_iomux_v3_setup_multiple_pads(fec2_pads,
+						 ARRAY_SIZE(fec2_pads));
+        gpio_direction_output(ENET2_RESET, 1);
+        gpio_set_value(ENET2_RESET, 0);
+	mdelay(20);
+        gpio_set_value(ENET2_RESET, 1);
+	}
+}
+
+
+```
+
+
+- </mark>所以在uboot中只能创建一个网卡，无法创建第二个网卡eth1.</mark>
+
+
+
+
+# QA
+
+## 为什么mx6ullevk.c中网卡名叫fec? 
+
+> “FEC” 是 Fast Ethernet Controller 的缩写，指 NXP/Freescale SoC 上的以太网 MAC 硬件块。
