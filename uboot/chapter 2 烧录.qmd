@@ -25,11 +25,11 @@ I.MX6ULL, NXP ARM Cortex-A7架构的32位处理器
 ### IP设置
 
  ```bash
-    setenv ipaddr 192.168.1.100
+    setenv ipaddr 192.168.31.100
     setenv ethaddr 00:01:00:02:00:03
-    setenv gatewayip 192.168.1.1 
+    setenv gatewayip 192.168.31.1 
     setenv netmask 255.255.255.0 
-    setenv serverip 192.168.169
+    setenv serverip 192.168.31.169
     saveenv 
 
     然后:
