@@ -122,7 +122,7 @@ nand write ${loadaddr} 0x620000 0x800000
 
 - **写入rootfs到NAND FLASH的0xE20000地址，大小为剩余空间0x1F1E0000**    
 nand erase 0xE20000 0x1F1E0000  
-nand write 0x80800000 0xE20000 ${filesize}  
+nand write.trimffs 0x80800000 0xE20000 ${filesize}  
 ```
 
 
@@ -253,7 +253,863 @@ table='/home/hf/alientek/buildroot-2019.02.6/output/build/buildroot-fs/full_devi
 
 **解决方法:** 以上都不是问题核心，应该是`make clean`无法清除相关编译产物，需要使用`make distclean`,然后重新编译
 
-    
+## 烧录
+
+### roofs.ubi 烧录后，第一次启动能成功，但是第二次启动必失败
+
+- 第一次启动成功log:
+
+```bash
+
+
+Starting kernel ...
+
+[    0.000000] Booting Linux on physical CPU 0x0
+[    0.000000] Linux version 4.1.15 (hf@ubuntu) (gcc version 4.9.4 (Linaro GCC 4.9-2017.01) ) #1 SMP PREEMPT Wed Apr 29 14:08:12 CST 2026
+[    0.000000] CPU: ARMv7 Processor [410fc075] revision 5 (ARMv7), cr=10c53c7d
+[    0.000000] CPU: PIPT / VIPT nonaliasing data cache, VIPT aliasing instruction cache
+[    0.000000] Machine model: Freescale i.MX6 ULL 14x14 EVK Board
+[    0.000000] Reserved memory: created CMA memory pool at 0x98000000, size 128 MiB
+[    0.000000] Reserved memory: initialized node linux,cma, compatible id shared-dma-pool
+[    0.000000] Memory policy: Data cache writealloc
+[    0.000000] PERCPU: Embedded 12 pages/cpu @97b8f000 s16832 r8192 d24128 u49152
+[    0.000000] Built 1 zonelists in Zone order, mobility grouping on.  Total pages: 130048
+[    0.000000] Kernel command line: console=ttymxc0,115200 ubi.mtd=5 root=ubi0:rootfs rootfstype=ubifs mtdparts=gpmi-nand:4m(u-boot),128k(env),1m(logo),1m(dtb),8m(kernel),-(rootfs)
+[    0.000000] PID hash table entries: 2048 (order: 1, 8192 bytes)
+[    0.000000] Dentry cache hash table entries: 65536 (order: 6, 262144 bytes)
+[    0.000000] Inode-cache hash table entries: 32768 (order: 5, 131072 bytes)
+[    0.000000] Memory: 375276K/524288K available (8531K kernel code, 454K rwdata, 2964K rodata, 532K init, 452K bss, 17940K reserved, 131072K cma-reserved, 0K highmem)
+[    0.000000] Virtual kernel memory layout:
+[    0.000000]     vector  : 0xffff0000 - 0xffff1000   (   4 kB)
+[    0.000000]     fixmap  : 0xffc00000 - 0xfff00000   (3072 kB)
+[    0.000000]     vmalloc : 0xa0800000 - 0xff000000   (1512 MB)
+[    0.000000]     lowmem  : 0x80000000 - 0xa0000000   ( 512 MB)
+[    0.000000]     pkmap   : 0x7fe00000 - 0x80000000   (   2 MB)
+[    0.000000]     modules : 0x7f000000 - 0x7fe00000   (  14 MB)
+[    0.000000]       .text : 0x80008000 - 0x80b4219c   (11497 kB)
+[    0.000000]       .init : 0x80b43000 - 0x80bc8000   ( 532 kB)
+[    0.000000]       .data : 0x80bc8000 - 0x80c39860   ( 455 kB)
+[    0.000000]        .bss : 0x80c3c000 - 0x80cad260   ( 453 kB)
+[    0.000000] SLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=1, Nodes=1
+[    0.000000] Preemptible hierarchical RCU implementation.
+[    0.000000]  Additional per-CPU info printed with stalls.
+[    0.000000]  RCU restricting CPUs from NR_CPUS=4 to nr_cpu_ids=1.
+[    0.000000] RCU: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=1
+[    0.000000] NR_IRQS:16 nr_irqs:16 16
+[    0.000000] mxc_clocksource_init 3000000
+[    0.000000] Switching to timer-based delay loop, resolution 333ns
+[    0.000016] sched_clock: 32 bits at 3000kHz, resolution 333ns, wraps every 715827882841ns
+[    0.000060] clocksource mxc_timer1: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 637086815595 ns
+[    0.002874] Console: colour dummy device 80x30
+[    0.002914] Calibrating delay loop (skipped), value calculated using timer frequency.. 6.00 BogoMIPS (lpj=30000)
+[    0.002952] pid_max: default: 32768 minimum: 301
+[    0.003186] Mount-cache hash table entries: 1024 (order: 0, 4096 bytes)
+[    0.003220] Mountpoint-cache hash table entries: 1024 (order: 0, 4096 bytes)
+[    0.004597] CPU: Testing write buffer coherency: ok
+[    0.005097] /cpus/cpu@0 missing clock-frequency property
+[    0.005143] CPU0: thread -1, cpu 0, socket 0, mpidr 80000000
+[    0.005252] Setting up static identity map for 0x80008280 - 0x800082d8
+[    0.041225] Brought up 1 CPUs
+[    0.041262] SMP: Total of 1 processors activated (6.00 BogoMIPS).
+[    0.041283] CPU: All CPU(s) started in SVC mode.
+[    0.042404] devtmpfs: initialized
+[    0.060121] device-tree: Duplicate name in lcdif@021c8000, renamed to "display#1"
+[    0.066827] VFP support v0.3: implementor 41 architecture 2 part 30 variant 7 rev 5
+[    0.067740] clocksource jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604462750000 ns
+[    0.077675] pinctrl core: initialized pinctrl subsystem
+[    0.080369] NET: Registered protocol family 16
+[    0.099642] DMA: preallocated 256 KiB pool for atomic coherent allocations
+[    0.130999] cpuidle: using governor ladder
+[    0.161062] cpuidle: using governor menu
+[    0.211201] hw-breakpoint: found 5 (+1 reserved) breakpoint and 4 watchpoint registers.
+[    0.211237] hw-breakpoint: maximum watchpoint size is 8 bytes.
+[    0.215902] imx6ul-pinctrl 20e0000.iomuxc: initialized IMX pinctrl driver
+[    0.216719] imx6ul-pinctrl 2290000.iomuxc-snvs: initialized IMX pinctrl driver
+[    0.289086] mxs-dma 1804000.dma-apbh: initialized
+[    0.296398] SCSI subsystem initialized
+[    0.297757] usbcore: registered new interface driver usbfs
+[    0.297943] usbcore: registered new interface driver hub
+[    0.298156] usbcore: registered new device driver usb
+[    0.301180] i2c i2c-0: IMX I2C adapter registered
+[    0.301229] i2c i2c-0: can't use DMA
+[    0.303615] i2c i2c-1: IMX I2C adapter registered
+[    0.303661] i2c i2c-1: can't use DMA
+[    0.303987] Linux video capture interface: v2.00
+[    0.304196] pps_core: LinuxPPS API ver. 1 registered
+[    0.304219] pps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>
+[    0.304299] PTP clock support registered
+[    0.307330] MIPI CSI2 driver module loaded
+[    0.308034] Advanced Linux Sound Architecture Driver Initialized.
+[    0.310307] Bluetooth: Core ver 2.20
+[    0.310440] NET: Registered protocol family 31
+[    0.310464] Bluetooth: HCI device and connection manager initialized
+[    0.310508] Bluetooth: HCI socket layer initialized
+[    0.310545] Bluetooth: L2CAP socket layer initialized
+[    0.310635] Bluetooth: SCO socket layer initialized
+[    0.313395] Switched to clocksource mxc_timer1
+[    0.340772] NET: Registered protocol family 2
+[    0.342400] TCP established hash table entries: 4096 (order: 2, 16384 bytes)
+[    0.342547] TCP bind hash table entries: 4096 (order: 3, 32768 bytes)
+[    0.342707] TCP: Hash tables configured (established 4096 bind 4096)
+[    0.342843] UDP hash table entries: 256 (order: 1, 8192 bytes)
+[    0.342906] UDP-Lite hash table entries: 256 (order: 1, 8192 bytes)
+[    0.343337] NET: Registered protocol family 1
+[    0.344192] RPC: Registered named UNIX socket transport module.
+[    0.344226] RPC: Registered udp transport module.
+[    0.344244] RPC: Registered tcp transport module.
+[    0.344264] RPC: Registered tcp NFSv4.1 backchannel transport module.
+[    0.347770] imx rpmsg driver is registered.
+[    0.350687] Bus freq driver module loaded
+[    0.352914] futex hash table entries: 256 (order: 2, 16384 bytes)
+[    0.370432] VFS: Disk quotas dquot_6.6.0
+[    0.370951] VFS: Dquot-cache hash table entries: 1024 (order 0, 4096 bytes)
+[    0.376953] NFS: Registering the id_resolver key type
+[    0.377070] Key type id_resolver registered
+[    0.377094] Key type id_legacy registered
+[    0.377299] jffs2: version 2.2. (NAND) © 2001-2006 Red Hat, Inc.
+[    0.379238] fuse init (API version 7.23)
+[    0.390791] io scheduler noop registered
+[    0.390840] io scheduler deadline registered
+[    0.391363] io scheduler cfq registered (default)
+[    0.392540] imx-weim 21b8000.weim: Driver registered.
+[    0.399418] backlight supply power not found, using dummy regulator
+[    0.400768] MIPI DSI driver module loaded
+[    0.401273] MIPI DSI driver module loaded
+[    0.407462] 21c8000.lcdif supply lcd not found, using dummy regulator
+[    0.516881] mxsfb 21c8000.lcdif: failed to find mxc display driver
+[    0.526568] Console: switching to colour frame buffer device 100x30
+[    0.564668] mxsfb 21c8000.lcdif: initialized
+[    0.566834] imx-sdma 20ec000.sdma: no event needs to be remapped
+[    0.567054] imx-sdma 20ec000.sdma: loaded firmware 3.3
+[    0.574543] imx-sdma 20ec000.sdma: initialized
+[    0.576832] 2020000.serial: ttymxc0 at MMIO 0x2020000 (irq = 20, base_baud = 5000000) is a IMX
+[    1.273151] console [ttymxc0] enabled
+[    1.278849] 21ec000.serial: ttymxc2 at MMIO 0x21ec000 (irq = 232, base_baud = 5000000) is a IMX
+[    1.377078] imx-rng 2284000.rngb: iMX RNG Registered.
+[    1.382878] imx sema4 driver is registered.
+[    1.387353] [drm] Initialized drm 1.1.0 20060810
+[    1.393341] [drm] Initialized vivante 1.0.0 20120216 on minor 0
+[    1.425412] brd: module loaded
+[    1.441547] loop: module loaded
+[    1.461870] nand: device found, Manufacturer ID: 0x2c, Chip ID: 0xdc
+[    1.468354] nand: Micron MT29F4G08ABADAWP
+[    1.472398] nand: 512 MiB, SLC, erase size: 128 KiB, page size: 2048, OOB size: 64
+[    1.480866] gpmi-nand 1806000.gpmi-nand: enable the asynchronous EDO mode 5
+[    1.488890] Bad block table not found for chip 0
+[    1.494286] Bad block table not found for chip 0
+[    1.498937] Scanning device for bad blocks
+[    1.742144] random: nonblocking pool is initialized
+[    1.888344] Bad block table written to 0x00001ffe0000, version 0x01
+[    1.895852] Bad block table written to 0x00001ffc0000, version 0x01
+[    1.902250] 6 cmdlinepart partitions found on MTD device gpmi-nand
+[    1.908510] Creating 6 MTD partitions on "gpmi-nand":
+[    1.913642] 0x000000000000-0x000000400000 : "u-boot"
+[    1.921240] 0x000000400000-0x000000420000 : "env"
+[    1.928572] 0x000000420000-0x000000520000 : "logo"
+[    1.936040] 0x000000520000-0x000000620000 : "dtb"
+[    1.943083] 0x000000620000-0x000000e20000 : "kernel"
+[    1.950726] 0x000000e20000-0x000020000000 : "rootfs"
+[    1.959804] gpmi-nand 1806000.gpmi-nand: driver registered.
+[    1.969341] spi_imx 2010000.ecspi: probed
+[    1.976303] CAN device driver interface
+[    1.983298] flexcan 2090000.can: device registered (reg_base=a0a20000, irq=27)
+[    1.993010] 20b4000.ethernet supply phy not found, using dummy regulator
+[    2.204587] pps pps0: new PPS source ptp0
+[    2.211066] libphy: fec_enet_mii_bus: probed
+[    2.219746] fec 20b4000.ethernet eth0: registered PHC device 0
+[    2.227587] 2188000.ethernet supply phy not found, using dummy regulator
+[    2.444519] pps pps1: new PPS source ptp1
+[    2.452423] fec 2188000.ethernet eth1: registered PHC device 1
+[    2.460143] PPP generic driver version 2.4.2
+[    2.465131] PPP BSD Compression module registered
+[    2.469889] PPP Deflate Compression module registered
+[    2.475087] PPP MPPE Compression module registered
+[    2.479936] NET: Registered protocol family 24
+[    2.484752] usbcore: registered new interface driver asix
+[    2.490358] usbcore: registered new interface driver ax88179_178a
+[    2.496742] usbcore: registered new interface driver cdc_ether
+[    2.502756] usbcore: registered new interface driver net1080
+[    2.508662] usbcore: registered new interface driver cdc_subset
+[    2.514810] usbcore: registered new interface driver zaurus
+[    2.520680] usbcore: registered new interface driver cdc_ncm
+[    2.526442] ehci_hcd: USB 2.0 'Enhanced' Host Controller (EHCI) Driver
+[    2.533011] ehci-mxc: Freescale On-Chip EHCI Host driver
+[    2.538930] usbcore: registered new interface driver usb-storage
+[    2.545208] usbcore: registered new interface driver usb_ehset_test
+[    2.554584] 2184800.usbmisc supply vbus-wakeup not found, using dummy regulator
+[    2.563971] 2184000.usb supply vbus not found, using dummy regulator
+[    2.576071] ci_hdrc ci_hdrc.0: EHCI Host Controller
+[    2.581034] ci_hdrc ci_hdrc.0: new USB bus registered, assigned bus number 1
+[    2.603535] ci_hdrc ci_hdrc.0: USB 2.0 started, EHCI 1.00
+[    2.611163] hub 1-0:1.0: USB hub found
+[    2.615234] hub 1-0:1.0: 1 port detected
+[    2.621093] 2184200.usb supply vbus not found, using dummy regulator
+[    2.631617] ci_hdrc ci_hdrc.1: EHCI Host Controller
+[    2.636756] ci_hdrc ci_hdrc.1: new USB bus registered, assigned bus number 2
+[    2.663537] ci_hdrc ci_hdrc.1: USB 2.0 started, EHCI 1.00
+[    2.671158] hub 2-0:1.0: USB hub found
+[    2.675239] hub 2-0:1.0: 1 port detected
+[    2.681818] mousedev: PS/2 mouse device common for all mice
+[    2.689604] input: 20cc000.snvs:snvs-powerkey as /devices/platform/soc/2000000.aips-bus/20cc000.snvs/20cc000.snvs:snvs-powerkey/input/input0
+[    2.993461] usb 2-1: new high-speed USB device number 2 using ci_hdrc
+[    3.033704] edt_ft5x06 1-0038: touchscreen probe failed
+[    3.039061] edt_ft5x06: probe of 1-0038 failed with error -5
+[    3.045343] <<-GTP-INFO->> GTP driver installing...
+[    3.050921] <<-GTP-INFO->> GTP Driver Version: gt9xx driver Rleased <2021/11/27> Based V2.4
+[    3.059724] <<-GTP-INFO->> GTP I2C Address: 0x5d
+[    3.064502] <<-GTP-INFO->> Guitar reset
+[    3.147213] hub 2-1:1.0: USB hub found
+[    3.151438] hub 2-1:1.0: 4 ports detected
+[    3.193484] 1-005d supply vdd_ana not found, using dummy regulator
+[    3.199878] 1-005d supply vcc_i2c not found, using dummy regulator
+[    3.206589] goodix-ts 1-005d: read version failed: -5
+[    3.211674] <<-GTP-ERROR->> Read version failed.
+[    3.217500] <<-GTP-ERROR->> I2C Read: 0x8047, 1 bytes failed, errcode: -5! Process reset.
+[    3.225748] <<-GTP-INFO->> Guitar reset
+[    3.343437] <<-GTP-ERROR->> GTP i2c test failed time 1.
+[    3.364552] <<-GTP-ERROR->> I2C Read: 0x8047, 1 bytes failed, errcode: -5! Process reset.
+[    3.372755] <<-GTP-INFO->> Guitar reset
+[    3.493454] <<-GTP-ERROR->> GTP i2c test failed time 2.
+[    3.514545] <<-GTP-ERROR->> I2C Read: 0x8047, 1 bytes failed, errcode: -5! Process reset.
+[    3.522748] <<-GTP-INFO->> Guitar reset
+[    3.643420] <<-GTP-ERROR->> GTP i2c test failed time 3.
+[    3.664521] <<-GTP-ERROR->> I2C Read: 0x8047, 1 bytes failed, errcode: -5! Process reset.
+[    3.672723] <<-GTP-INFO->> Guitar reset
+[    3.793421] <<-GTP-ERROR->> GTP i2c test failed time 4.
+[    3.814515] <<-GTP-ERROR->> I2C Read: 0x8047, 1 bytes failed, errcode: -5! Process reset.
+[    3.822716] <<-GTP-INFO->> Guitar reset
+[    3.943415] <<-GTP-ERROR->> GTP i2c test failed time 5.
+[    3.963402] <<-GTP-ERROR->> I2C communication ERROR!
+[    3.968454] goodix-ts: probe of 1-005d failed with error -5
+[    3.978373] snvs_rtc 20cc000.snvs:snvs-rtc-lp: rtc core: registered 20cc000.snvs:snvs-r as rtc0
+[    3.987571] i2c /dev entries driver
+[    3.994097] IR NEC protocol handler initialized
+[    3.998683] IR RC5(x/sz) protocol handler initialized
+[    4.003828] IR RC6 protocol handler initialized
+[    4.008399] IR JVC protocol handler initialized
+[    4.012961] IR Sony protocol handler initialized
+[    4.017656] IR SANYO protocol handler initialized
+[    4.022395] IR Sharp protocol handler initialized
+[    4.027176] IR MCE Keyboard/mouse protocol handler initialized
+[    4.033043] IR XMP protocol handler initialized
+[    4.040980] pxp-v4l2 pxp_v4l2: initialized
+[    4.047317] 0-000e supply vdd not found, using dummy regulator
+[    4.053331] 0-000e supply vddio not found, using dummy regulator
+[    4.059615] mag3110 0-000e: check mag3110 chip ID
+[    4.064707] mag3110 0-000e: read chip ID 0xfffffffb is not equal to 0xc4!
+[    4.071762] mag3110: probe of 0-000e failed with error -22
+[    4.079795] imx2-wdt 20bc000.wdog: use WDOG_B to reboot.
+[    4.086317] imx2-wdt 20bc000.wdog: timeout 60 sec (nowayout=0)
+[    4.092570] Bluetooth: HCI UART driver ver 2.3
+[    4.097278] Bluetooth: HCI UART protocol H4 registered
+[    4.102453] Bluetooth: HCI UART protocol BCSP registered
+[    4.107841] Bluetooth: HCI UART protocol ATH3K registered
+[    4.113586] usbcore: registered new interface driver bcm203x
+[    4.119524] usbcore: registered new interface driver btusb
+[    4.125336] usbcore: registered new interface driver ath3k
+[    4.131936] sdhci: Secure Digital Host Controller Interface driver
+[    4.138253] sdhci: Copyright(c) Pierre Ossman
+[    4.142660] sdhci-pltfm: SDHCI platform and OF driver helper
+[    4.150948] /soc/aips-bus@02100000/usdhc@02190000: voltage-ranges unspecified
+[    4.158391] sdhci-esdhc-imx 2190000.usdhc: Got CD GPIO
+[    4.164808] sdhci-esdhc-imx 2190000.usdhc: No vqmmc regulator found
+[    4.214910] mmc0: SDHCI controller on 2190000.usdhc [2190000.usdhc] using ADMA
+[    4.254694] usbcore: registered new interface driver usbhid
+[    4.260312] usbhid: USB HID core driver
+[    4.285346] fsl-asrc 2034000.asrc: driver registered
+[    4.297484] mmc0: host does not support reading read-only switch, assuming write-enable
+[    4.311925] imx-wm8960 sound: wm8960-hifi <-> 202c000.sai mapping ok
+[    4.324313] imx-wm8960 sound: snd-soc-dummy-dai <-> 2034000.asrc mapping ok
+[    4.331628] imx-wm8960 sound: wm8960-hifi <-> 202c000.sai mapping ok
+[    4.339320] mmc0: new high speed SDHC card at address b368
+[    4.346929] mmcblk0: mmc0:b368 NCard 14.5 GiB
+[    4.355770]  mmcblk0:
+[    4.471327] NET: Registered protocol family 26
+[    4.478013] NET: Registered protocol family 10
+[    4.485287] sit: IPv6 over IPv4 tunneling driver
+[    4.491954] NET: Registered protocol family 17
+[    4.496717] bridge: automatic filtering via arp/ip/ip6tables has been deprecated. Update your scripts to load br_netfilter if you need this.
+[    4.509439] can: controller area network core (rev 20120528 abi 9)
+[    4.515866] NET: Registered protocol family 29
+[    4.520403] can: raw protocol (rev 20120528)
+[    4.524788] can: broadcast manager protocol (rev 20120528 t)
+[    4.530516] can: netlink gateway (rev 20130117) max_hops=1
+[    4.536761] Bluetooth: RFCOMM TTY layer initialized
+[    4.541713] Bluetooth: RFCOMM socket layer initialized
+[    4.547129] Bluetooth: RFCOMM ver 1.11
+[    4.550957] Bluetooth: BNEP (Ethernet Emulation) ver 1.3
+[    4.556423] Bluetooth: BNEP filters: protocol multicast
+[    4.561708] Bluetooth: BNEP socket layer initialized
+[    4.566770] Bluetooth: HIDP (Human Interface Emulation) ver 1.2
+[    4.572734] Bluetooth: HIDP socket layer initialized
+[    4.577927] 8021q: 802.1Q VLAN Support v1.8
+[    4.582298] Key type dns_resolver registered
+[    4.612182] ubi0: attaching mtd5
+[    5.137017] ubi0: scanning is finished
+[    5.162479] ubi0: volume 0 ("rootfs") re-sized from 37 to 3899 LEBs
+[    5.169681] ubi0: attached mtd5 (name "rootfs", size 497 MiB)
+[    5.175536] ubi0: PEB size: 131072 bytes (128 KiB), LEB size: 126976 bytes
+[    5.182424] ubi0: min./max. I/O unit sizes: 2048/2048, sub-page size 2048
+[    5.189250] ubi0: VID header offset: 2048 (aligned 2048), data offset: 4096
+[    5.196247] ubi0: good PEBs: 3979, bad PEBs: 4, corrupted PEBs: 0
+[    5.202350] ubi0: user volume: 1, internal volumes: 1, max. volumes count: 128
+[    5.209685] ubi0: max/mean erase counter: 1/0, WL threshold: 4096, image sequence number: 1694596818
+[    5.218860] ubi0: available PEBs: 0, total reserved PEBs: 3979, PEBs reserved for bad PEB handling: 76
+[    5.228214] ubi0: background thread "ubi_bgt0d" started, PID 87
+[    5.234203] dhd_module_init in
+[    5.238628] input: gpio_keys@0 as /devices/platform/gpio_keys@0/input/input2
+[    5.249929] snvs_rtc 20cc000.snvs:snvs-rtc-lp: setting system clock to 1970-01-01 00:00:01 UTC (1)
+[    5.278765] gpio_dvfs: disabling
+[    5.282039] can-3v3: disabling
+[    5.289276] ALSA device list:
+[    5.292272]   #0: wm8960-audio
+[    5.356635] UBIFS (ubi0:0): UBIFS: mounted UBI device 0, volume 0, name "rootfs", R/O mode
+[    5.365554] UBIFS (ubi0:0): LEB size: 126976 bytes (124 KiB), min./max. I/O unit sizes: 2048 bytes/2048 bytes
+[    5.376368] UBIFS (ubi0:0): FS size: 258650112 bytes (246 MiB, 2037 LEBs), journal size 9023488 bytes (8 MiB, 72 LEBs)
+[    5.387921] UBIFS (ubi0:0): reserved for root: 0 bytes (0 KiB)
+[    5.394599] UBIFS (ubi0:0): media format: w4/r0 (latest is w4/r0), UUID 883144B2-455A-4B6B-AFCF-AD1506B4E2C2, small LPT model
+[    5.412059] VFS: Mounted root (ubifs filesystem) readonly on device 0:14.
+[    5.425408] devtmpfs: mounted
+[    5.429097] Freeing unused kernel memory: 532K (80b43000 - 80bc8000)
+[    5.626776] UBIFS (ubi0:0): background thread "ubifs_bgt0_0" started, PID 90
+[    5.665246] devpts: called with bogus options
+Starting syslogd: OK
+Starting klogd: OK
+Starting mdev...
+modprobe: can't change directory to '/lib/modules': No such file or directory
+Initializing random number generator... done.
+Starting network: OK
+
+Welcome to Buildroot
+buildroot login: root
+#
+
+```
+- 第二次启动失败log
+
+```bash
+NAND read: device 0 offset 0x520000, size 0x20000
+ 131072 bytes read: OK
+Kernel image @ 0x80800000 [ 0x000000 - 0x6797a8 ]
+## Flattened Device Tree blob at 83000000
+   Booting using the fdt blob at 0x83000000
+   Using Device Tree in place at 83000000, end 8300c94c
+
+Starting kernel ...
+
+[    0.000000] Booting Linux on physical CPU 0x0
+[    0.000000] Linux version 4.1.15 (hf@ubuntu) (gcc version 4.9.4 (Linaro GCC 4.9-2017.01) ) #1 SMP PREEMPT Wed Apr 29 14:08:12 CST 2026
+[    0.000000] CPU: ARMv7 Processor [410fc075] revision 5 (ARMv7), cr=10c53c7d
+[    0.000000] CPU: PIPT / VIPT nonaliasing data cache, VIPT aliasing instruction cache
+[    0.000000] Machine model: Freescale i.MX6 ULL 14x14 EVK Board
+[    0.000000] Reserved memory: created CMA memory pool at 0x98000000, size 128 MiB
+[    0.000000] Reserved memory: initialized node linux,cma, compatible id shared-dma-pool
+[    0.000000] Memory policy: Data cache writealloc
+[    0.000000] PERCPU: Embedded 12 pages/cpu @97b8f000 s16832 r8192 d24128 u49152
+[    0.000000] Built 1 zonelists in Zone order, mobility grouping on.  Total pages: 130048
+[    0.000000] Kernel command line: console=ttymxc0,115200 ubi.mtd=5 root=ubi0:rootfs rootfstype=ubifs mtdparts=gpmi-nand:4m(u-boot),128k(env),1m(logo),1m(dtb),8m(kernel),-(rootfs)
+[    0.000000] PID hash table entries: 2048 (order: 1, 8192 bytes)
+[    0.000000] Dentry cache hash table entries: 65536 (order: 6, 262144 bytes)
+[    0.000000] Inode-cache hash table entries: 32768 (order: 5, 131072 bytes)
+[    0.000000] Memory: 375276K/524288K available (8531K kernel code, 454K rwdata, 2964K rodata, 532K init, 452K bss, 17940K reserved, 131072K cma-reserved, 0K highmem)
+[    0.000000] Virtual kernel memory layout:
+[    0.000000]     vector  : 0xffff0000 - 0xffff1000   (   4 kB)
+[    0.000000]     fixmap  : 0xffc00000 - 0xfff00000   (3072 kB)
+[    0.000000]     vmalloc : 0xa0800000 - 0xff000000   (1512 MB)
+[    0.000000]     lowmem  : 0x80000000 - 0xa0000000   ( 512 MB)
+[    0.000000]     pkmap   : 0x7fe00000 - 0x80000000   (   2 MB)
+[    0.000000]     modules : 0x7f000000 - 0x7fe00000   (  14 MB)
+[    0.000000]       .text : 0x80008000 - 0x80b4219c   (11497 kB)
+[    0.000000]       .init : 0x80b43000 - 0x80bc8000   ( 532 kB)
+[    0.000000]       .data : 0x80bc8000 - 0x80c39860   ( 455 kB)
+[    0.000000]        .bss : 0x80c3c000 - 0x80cad260   ( 453 kB)
+[    0.000000] SLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=1, Nodes=1
+[    0.000000] Preemptible hierarchical RCU implementation.
+[    0.000000]  Additional per-CPU info printed with stalls.
+[    0.000000]  RCU restricting CPUs from NR_CPUS=4 to nr_cpu_ids=1.
+[    0.000000] RCU: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=1
+[    0.000000] NR_IRQS:16 nr_irqs:16 16
+[    0.000000] mxc_clocksource_init 3000000
+[    0.000000] Switching to timer-based delay loop, resolution 333ns
+[    0.000017] sched_clock: 32 bits at 3000kHz, resolution 333ns, wraps every 715827882841ns
+[    0.000062] clocksource mxc_timer1: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 637086815595 ns
+[    0.002872] Console: colour dummy device 80x30
+[    0.002911] Calibrating delay loop (skipped), value calculated using timer frequency.. 6.00 BogoMIPS (lpj=30000)
+[    0.002949] pid_max: default: 32768 minimum: 301
+[    0.003178] Mount-cache hash table entries: 1024 (order: 0, 4096 bytes)
+[    0.003211] Mountpoint-cache hash table entries: 1024 (order: 0, 4096 bytes)
+[    0.004602] CPU: Testing write buffer coherency: ok
+[    0.005108] /cpus/cpu@0 missing clock-frequency property
+[    0.005152] CPU0: thread -1, cpu 0, socket 0, mpidr 80000000
+[    0.005258] Setting up static identity map for 0x80008280 - 0x800082d8
+[    0.041227] Brought up 1 CPUs
+[    0.041267] SMP: Total of 1 processors activated (6.00 BogoMIPS).
+[    0.041289] CPU: All CPU(s) started in SVC mode.
+[    0.042406] devtmpfs: initialized
+[    0.060163] device-tree: Duplicate name in lcdif@021c8000, renamed to "display#1"
+[    0.066881] VFP support v0.3: implementor 41 architecture 2 part 30 variant 7 rev 5
+[    0.067793] clocksource jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604462750000 ns
+[    0.077675] pinctrl core: initialized pinctrl subsystem
+[    0.080373] NET: Registered protocol family 16
+[    0.099684] DMA: preallocated 256 KiB pool for atomic coherent allocations
+[    0.130983] cpuidle: using governor ladder
+[    0.161055] cpuidle: using governor menu
+[    0.211158] hw-breakpoint: found 5 (+1 reserved) breakpoint and 4 watchpoint registers.
+[    0.211192] hw-breakpoint: maximum watchpoint size is 8 bytes.
+[    0.215833] imx6ul-pinctrl 20e0000.iomuxc: initialized IMX pinctrl driver
+[    0.216652] imx6ul-pinctrl 2290000.iomuxc-snvs: initialized IMX pinctrl driver
+[    0.289018] mxs-dma 1804000.dma-apbh: initialized
+[    0.296361] SCSI subsystem initialized
+[    0.297701] usbcore: registered new interface driver usbfs
+[    0.297892] usbcore: registered new interface driver hub
+[    0.298113] usbcore: registered new device driver usb
+[    0.301153] i2c i2c-0: IMX I2C adapter registered
+[    0.301204] i2c i2c-0: can't use DMA
+[    0.303584] i2c i2c-1: IMX I2C adapter registered
+[    0.303633] i2c i2c-1: can't use DMA
+[    0.303950] Linux video capture interface: v2.00
+[    0.304159] pps_core: LinuxPPS API ver. 1 registered
+[    0.304184] pps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>
+[    0.304263] PTP clock support registered
+[    0.307294] MIPI CSI2 driver module loaded
+[    0.307989] Advanced Linux Sound Architecture Driver Initialized.
+[    0.310258] Bluetooth: Core ver 2.20
+[    0.310392] NET: Registered protocol family 31
+[    0.310416] Bluetooth: HCI device and connection manager initialized
+[    0.310455] Bluetooth: HCI socket layer initialized
+[    0.310491] Bluetooth: L2CAP socket layer initialized
+[    0.310579] Bluetooth: SCO socket layer initialized
+[    0.313335] Switched to clocksource mxc_timer1
+[    0.340661] NET: Registered protocol family 2
+[    0.342308] TCP established hash table entries: 4096 (order: 2, 16384 bytes)
+[    0.342450] TCP bind hash table entries: 4096 (order: 3, 32768 bytes)
+[    0.342611] TCP: Hash tables configured (established 4096 bind 4096)
+[    0.342747] UDP hash table entries: 256 (order: 1, 8192 bytes)
+[    0.342810] UDP-Lite hash table entries: 256 (order: 1, 8192 bytes)
+[    0.343234] NET: Registered protocol family 1
+[    0.344090] RPC: Registered named UNIX socket transport module.
+[    0.344126] RPC: Registered udp transport module.
+[    0.344147] RPC: Registered tcp transport module.
+[    0.344166] RPC: Registered tcp NFSv4.1 backchannel transport module.
+[    0.347688] imx rpmsg driver is registered.
+[    0.350604] Bus freq driver module loaded
+[    0.352827] futex hash table entries: 256 (order: 2, 16384 bytes)
+[    0.370354] VFS: Disk quotas dquot_6.6.0
+[    0.370870] VFS: Dquot-cache hash table entries: 1024 (order 0, 4096 bytes)
+[    0.376847] NFS: Registering the id_resolver key type
+[    0.376987] Key type id_resolver registered
+[    0.377010] Key type id_legacy registered
+[    0.377212] jffs2: version 2.2. (NAND) © 2001-2006 Red Hat, Inc.
+[    0.379138] fuse init (API version 7.23)
+[    0.390666] io scheduler noop registered
+[    0.390717] io scheduler deadline registered
+[    0.391240] io scheduler cfq registered (default)
+[    0.392412] imx-weim 21b8000.weim: Driver registered.
+[    0.399257] backlight supply power not found, using dummy regulator
+[    0.400614] MIPI DSI driver module loaded
+[    0.401141] MIPI DSI driver module loaded
+[    0.407349] 21c8000.lcdif supply lcd not found, using dummy regulator
+[    0.516852] mxsfb 21c8000.lcdif: failed to find mxc display driver
+[    0.526572] Console: switching to colour frame buffer device 100x30
+[    0.564604] mxsfb 21c8000.lcdif: initialized
+[    0.566773] imx-sdma 20ec000.sdma: no event needs to be remapped
+[    0.566994] imx-sdma 20ec000.sdma: loaded firmware 3.3
+[    0.574512] imx-sdma 20ec000.sdma: initialized
+[    0.576787] 2020000.serial: ttymxc0 at MMIO 0x2020000 (irq = 20, base_baud = 5000000) is a IMX
+[    1.273136] console [ttymxc0] enabled
+[    1.278816] 21ec000.serial: ttymxc2 at MMIO 0x21ec000 (irq = 232, base_baud = 5000000) is a IMX
+[    1.377012] imx-rng 2284000.rngb: iMX RNG Registered.
+[    1.382808] imx sema4 driver is registered.
+[    1.387282] [drm] Initialized drm 1.1.0 20060810
+[    1.393263] [drm] Initialized vivante 1.0.0 20120216 on minor 0
+[    1.425493] brd: module loaded
+[    1.441648] loop: module loaded
+[    1.461950] nand: device found, Manufacturer ID: 0x2c, Chip ID: 0xdc
+[    1.468431] nand: Micron MT29F4G08ABADAWP
+[    1.472474] nand: 512 MiB, SLC, erase size: 128 KiB, page size: 2048, OOB size: 64
+[    1.480941] gpmi-nand 1806000.gpmi-nand: enable the asynchronous EDO mode 5
+[    1.488435] Bad block table found at page 262080, version 0x01
+[    1.494579] Bad block table found at page 262016, version 0x01
+[    1.500886] 6 cmdlinepart partitions found on MTD device gpmi-nand
+[    1.507170] Creating 6 MTD partitions on "gpmi-nand":
+[    1.512265] 0x000000000000-0x000000400000 : "u-boot"
+[    1.519919] 0x000000400000-0x000000420000 : "env"
+[    1.527249] 0x000000420000-0x000000520000 : "logo"
+[    1.534687] 0x000000520000-0x000000620000 : "dtb"
+[    1.541752] 0x000000620000-0x000000e20000 : "kernel"
+[    1.549319] 0x000000e20000-0x000020000000 : "rootfs"
+[    1.558387] gpmi-nand 1806000.gpmi-nand: driver registered.
+[    1.567858] spi_imx 2010000.ecspi: probed
+[    1.574839] CAN device driver interface
+[    1.581806] flexcan 2090000.can: device registered (reg_base=a0a20000, irq=27)
+[    1.591521] 20b4000.ethernet supply phy not found, using dummy regulator
+[    1.804521] pps pps0: new PPS source ptp0
+[    1.810985] libphy: fec_enet_mii_bus: probed
+[    1.819617] fec 20b4000.ethernet eth0: registered PHC device 0
+[    1.827464] 2188000.ethernet supply phy not found, using dummy regulator
+[    2.044512] pps pps1: new PPS source ptp1
+[    2.052406] fec 2188000.ethernet eth1: registered PHC device 1
+[    2.060149] PPP generic driver version 2.4.2
+[    2.065125] PPP BSD Compression module registered
+[    2.069882] PPP Deflate Compression module registered
+[    2.075084] PPP MPPE Compression module registered
+[    2.079930] NET: Registered protocol family 24
+[    2.084754] usbcore: registered new interface driver asix
+[    2.090362] usbcore: registered new interface driver ax88179_178a
+[    2.096749] usbcore: registered new interface driver cdc_ether
+[    2.102765] usbcore: registered new interface driver net1080
+[    2.108673] usbcore: registered new interface driver cdc_subset
+[    2.114825] usbcore: registered new interface driver zaurus
+[    2.120688] usbcore: registered new interface driver cdc_ncm
+[    2.126453] ehci_hcd: USB 2.0 'Enhanced' Host Controller (EHCI) Driver
+[    2.133022] ehci-mxc: Freescale On-Chip EHCI Host driver
+[    2.138912] usbcore: registered new interface driver usb-storage
+[    2.145193] usbcore: registered new interface driver usb_ehset_test
+[    2.154543] 2184800.usbmisc supply vbus-wakeup not found, using dummy regulator
+[    2.163929] 2184000.usb supply vbus not found, using dummy regulator
+[    2.176027] ci_hdrc ci_hdrc.0: EHCI Host Controller
+[    2.180990] ci_hdrc ci_hdrc.0: new USB bus registered, assigned bus number 1
+[    2.203470] ci_hdrc ci_hdrc.0: USB 2.0 started, EHCI 1.00
+[    2.211088] hub 1-0:1.0: USB hub found
+[    2.215166] hub 1-0:1.0: 1 port detected
+[    2.221015] 2184200.usb supply vbus not found, using dummy regulator
+[    2.231544] ci_hdrc ci_hdrc.1: EHCI Host Controller
+[    2.236687] ci_hdrc ci_hdrc.1: new USB bus registered, assigned bus number 2
+[    2.263470] ci_hdrc ci_hdrc.1: USB 2.0 started, EHCI 1.00
+[    2.271130] hub 2-0:1.0: USB hub found
+[    2.275213] hub 2-0:1.0: 1 port detected
+[    2.281812] mousedev: PS/2 mouse device common for all mice
+[    2.289567] input: 20cc000.snvs:snvs-powerkey as /devices/platform/soc/2000000.aips-bus/20cc000.snvs/20cc000.snvs:snvs-powerkey/input/input0
+[    2.593393] usb 2-1: new high-speed USB device number 2 using ci_hdrc
+[    2.633655] edt_ft5x06 1-0038: touchscreen probe failed
+[    2.639015] edt_ft5x06: probe of 1-0038 failed with error -5
+[    2.645217] <<-GTP-INFO->> GTP driver installing...
+[    2.650810] <<-GTP-INFO->> GTP Driver Version: gt9xx driver Rleased <2021/11/27> Based V2.4
+[    2.659607] <<-GTP-INFO->> GTP I2C Address: 0x5d
+[    2.664391] <<-GTP-INFO->> Guitar reset
+[    2.747138] hub 2-1:1.0: USB hub found
+[    2.751357] hub 2-1:1.0: 4 ports detected
+[    2.793417] 1-005d supply vdd_ana not found, using dummy regulator
+[    2.799810] 1-005d supply vcc_i2c not found, using dummy regulator
+[    2.806520] goodix-ts 1-005d: read version failed: -5
+[    2.811603] <<-GTP-ERROR->> Read version failed.
+[    2.817429] <<-GTP-ERROR->> I2C Read: 0x8047, 1 bytes failed, errcode: -5! Process reset.
+[    2.825680] <<-GTP-INFO->> Guitar reset
+[    2.943373] <<-GTP-ERROR->> GTP i2c test failed time 1.
+[    2.964464] <<-GTP-ERROR->> I2C Read: 0x8047, 1 bytes failed, errcode: -5! Process reset.
+[    2.972668] <<-GTP-INFO->> Guitar reset
+[    3.093373] <<-GTP-ERROR->> GTP i2c test failed time 2.
+[    3.114467] <<-GTP-ERROR->> I2C Read: 0x8047, 1 bytes failed, errcode: -5! Process reset.
+[    3.122668] <<-GTP-INFO->> Guitar reset
+[    3.243358] <<-GTP-ERROR->> GTP i2c test failed time 3.
+[    3.264454] <<-GTP-ERROR->> I2C Read: 0x8047, 1 bytes failed, errcode: -5! Process reset.
+[    3.272655] <<-GTP-INFO->> Guitar reset
+[    3.393357] <<-GTP-ERROR->> GTP i2c test failed time 4.
+[    3.414467] <<-GTP-ERROR->> I2C Read: 0x8047, 1 bytes failed, errcode: -5! Process reset.
+[    3.422665] <<-GTP-INFO->> Guitar reset
+[    3.543370] <<-GTP-ERROR->> GTP i2c test failed time 5.
+[    3.563344] <<-GTP-ERROR->> I2C communication ERROR!
+[    3.568395] goodix-ts: probe of 1-005d failed with error -5
+[    3.578357] snvs_rtc 20cc000.snvs:snvs-rtc-lp: rtc core: registered 20cc000.snvs:snvs-r as rtc0
+[    3.587552] i2c /dev entries driver
+[    3.594073] IR NEC protocol handler initialized
+[    3.598660] IR RC5(x/sz) protocol handler initialized
+[    3.603806] IR RC6 protocol handler initialized
+[    3.608372] IR JVC protocol handler initialized
+[    3.612933] IR Sony protocol handler initialized
+[    3.617626] IR SANYO protocol handler initialized
+[    3.622363] IR Sharp protocol handler initialized
+[    3.627142] IR MCE Keyboard/mouse protocol handler initialized
+[    3.633012] IR XMP protocol handler initialized
+[    3.640929] pxp-v4l2 pxp_v4l2: initialized
+[    3.647153] 0-000e supply vdd not found, using dummy regulator
+[    3.653157] 0-000e supply vddio not found, using dummy regulator
+[    3.659436] mag3110 0-000e: check mag3110 chip ID
+[    3.664522] mag3110 0-000e: read chip ID 0xfffffffb is not equal to 0xc4!
+[    3.671569] mag3110: probe of 0-000e failed with error -22
+[    3.679612] imx2-wdt 20bc000.wdog: use WDOG_B to reboot.
+[    3.686134] imx2-wdt 20bc000.wdog: timeout 60 sec (nowayout=0)
+[    3.692383] Bluetooth: HCI UART driver ver 2.3
+[    3.697089] Bluetooth: HCI UART protocol H4 registered
+[    3.702265] Bluetooth: HCI UART protocol BCSP registered
+[    3.707657] Bluetooth: HCI UART protocol ATH3K registered
+[    3.713412] usbcore: registered new interface driver bcm203x
+[    3.719351] usbcore: registered new interface driver btusb
+[    3.725160] usbcore: registered new interface driver ath3k
+[    3.731785] sdhci: Secure Digital Host Controller Interface driver
+[    3.738099] sdhci: Copyright(c) Pierre Ossman
+[    3.742505] sdhci-pltfm: SDHCI platform and OF driver helper
+[    3.750824] /soc/aips-bus@02100000/usdhc@02190000: voltage-ranges unspecified
+[    3.758270] sdhci-esdhc-imx 2190000.usdhc: Got CD GPIO
+[    3.764703] sdhci-esdhc-imx 2190000.usdhc: No vqmmc regulator found
+[    3.814843] mmc0: SDHCI controller on 2190000.usdhc [2190000.usdhc] using ADMA
+[    3.854438] usbcore: registered new interface driver usbhid
+[    3.860058] usbhid: USB HID core driver
+[    3.884860] fsl-asrc 2034000.asrc: driver registered
+[    3.902537] mmc0: host does not support reading read-only switch, assuming write-enable
+[    3.912151] imx-wm8960 sound: wm8960-hifi <-> 202c000.sai mapping ok
+[    3.924503] imx-wm8960 sound: snd-soc-dummy-dai <-> 2034000.asrc mapping ok
+[    3.931823] imx-wm8960 sound: wm8960-hifi <-> 202c000.sai mapping ok
+[    3.939520] mmc0: new high speed SDHC card at address b368
+[    3.947153] mmcblk0: mmc0:b368 NCard 14.5 GiB
+[    3.956109]  mmcblk0:
+[    4.071370] NET: Registered protocol family 26
+[    4.078055] NET: Registered protocol family 10
+[    4.085335] sit: IPv6 over IPv4 tunneling driver
+[    4.091952] NET: Registered protocol family 17
+[    4.096704] bridge: automatic filtering via arp/ip/ip6tables has been deprecated. Update your scripts to load br_netfilter if you need this.
+[    4.109426] can: controller area network core (rev 20120528 abi 9)
+[    4.115861] NET: Registered protocol family 29
+[    4.120396] can: raw protocol (rev 20120528)
+[    4.124777] can: broadcast manager protocol (rev 20120528 t)
+[    4.130500] can: netlink gateway (rev 20130117) max_hops=1
+[    4.136745] Bluetooth: RFCOMM TTY layer initialized
+[    4.141694] Bluetooth: RFCOMM socket layer initialized
+[    4.147110] Bluetooth: RFCOMM ver 1.11
+[    4.150940] Bluetooth: BNEP (Ethernet Emulation) ver 1.3
+[    4.156405] Bluetooth: BNEP filters: protocol multicast
+[    4.161687] Bluetooth: BNEP socket layer initialized
+[    4.166748] Bluetooth: HIDP (Human Interface Emulation) ver 1.2
+[    4.172710] Bluetooth: HIDP socket layer initialized
+[    4.177902] 8021q: 802.1Q VLAN Support v1.8
+[    4.182253] Key type dns_resolver registered
+[    4.212115] ubi0: attaching mtd5
+[    4.458328] random: nonblocking pool is initialized
+[    5.259763] ubi0: scanning is finished
+[    5.275507] ubi0: attached mtd5 (name "rootfs", size 497 MiB)
+[    5.281288] ubi0: PEB size: 131072 bytes (128 KiB), LEB size: 126976 bytes
+[    5.288271] ubi0: min./max. I/O unit sizes: 2048/2048, sub-page size 2048
+[    5.295114] ubi0: VID header offset: 2048 (aligned 2048), data offset: 4096
+[    5.302086] ubi0: good PEBs: 3979, bad PEBs: 4, corrupted PEBs: 0
+[    5.308216] ubi0: user volume: 1, internal volumes: 1, max. volumes count: 128
+[    5.315544] ubi0: max/mean erase counter: 1/0, WL threshold: 4096, image sequence number: 1694596818
+[    5.324721] ubi0: available PEBs: 0, total reserved PEBs: 3979, PEBs reserved for bad PEB handling: 76
+[    5.334080] ubi0: background thread "ubi_bgt0d" started, PID 87
+[    5.340050] dhd_module_init in
+[    5.344569] input: gpio_keys@0 as /devices/platform/gpio_keys@0/input/input2
+[    5.352261] snvs_rtc 20cc000.snvs:snvs-rtc-lp: setting system clock to 1970-01-01 00:00:01 UTC (1)
+[    5.375288] gpio_dvfs: disabling
+[    5.378561] can-3v3: disabling
+[    5.381886] ALSA device list:
+[    5.384955]   #0: wm8960-audio
+[    5.397393] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 126976 bytes from PEB 3:4096, read only 126976 bytes, retry
+[    5.418002] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 126976 bytes from PEB 3:4096, read only 126976 bytes, retry
+[    5.438533] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 126976 bytes from PEB 3:4096, read only 126976 bytes, retry
+[    5.459217] ubi0 error: ubi_io_read: error -74 (ECC error) while reading 126976 bytes from PEB 3:4096, read 126976 bytes
+[    5.470162] CPU: 0 PID: 1 Comm: swapper/0 Not tainted 4.1.15 #1
+[    5.476123] Hardware name: Freescale i.MX6 Ultralite (Device Tree)
+[    5.482349] [<80015dbc>] (unwind_backtrace) from [<80012748>] (show_stack+0x10/0x14)
+[    5.490153] [<80012748>] (show_stack) from [<8081f3ac>] (dump_stack+0x84/0xc4)
+[    5.497428] [<8081f3ac>] (dump_stack) from [<8041dac8>] (ubi_io_read+0x128/0x30c)
+[    5.504980] [<8041dac8>] (ubi_io_read) from [<8041b508>] (ubi_eba_read_leb+0x144/0x3dc)
+[    5.513004] [<8041b508>] (ubi_eba_read_leb) from [<8041a5c8>] (ubi_leb_read+0x70/0xc8)
+[    5.520970] [<8041a5c8>] (ubi_leb_read) from [<8021ca50>] (ubifs_leb_read+0x2c/0x98)
+[    5.528756] [<8021ca50>] (ubifs_leb_read) from [<802245c0>] (ubifs_start_scan+0x74/0xec)
+[    5.536886] [<802245c0>] (ubifs_start_scan) from [<802248cc>] (ubifs_scan+0x28/0x398)
+[    5.544753] [<802248cc>] (ubifs_scan) from [<80223930>] (ubifs_read_master+0x40/0x930)
+[    5.552686] [<80223930>] (ubifs_read_master) from [<8021a964>] (ubifs_mount+0xe0c/0x1768)
+[    5.560908] [<8021a964>] (ubifs_mount) from [<800ed5c8>] (mount_fs+0x14/0xa4)
+[    5.568088] [<800ed5c8>] (mount_fs) from [<801050cc>] (vfs_kern_mount+0x4c/0xf4)
+[    5.575523] [<801050cc>] (vfs_kern_mount) from [<80107ef0>] (do_mount+0x19c/0xb98)
+[    5.583108] [<80107ef0>] (do_mount) from [<80108c38>] (SyS_mount+0x74/0xa0)
+[    5.590111] [<80108c38>] (SyS_mount) from [<80b440e0>] (mount_block_root+0x100/0x228)
+[    5.597984] [<80b440e0>] (mount_block_root) from [<80b444ac>] (prepare_namespace+0xa8/0x1d4)
+[    5.606463] [<80b444ac>] (prepare_namespace) from [<80b43e3c>] (kernel_init_freeable+0x1d4/0x1e4)
+[    5.615374] [<80b43e3c>] (kernel_init_freeable) from [<8081b324>] (kernel_init+0xc/0xe8)
+[    5.623501] [<8081b324>] (kernel_init) from [<8000f528>] (ret_from_fork+0x14/0x2c)
+[    5.631188] UBIFS error (ubi0:0 pid 1): ubifs_scan: bad node
+[    5.645511] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 126976 bytes from PEB 3:4096, read only 126976 bytes, retry
+[    5.666173] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 126976 bytes from PEB 3:4096, read only 126976 bytes, retry
+[    5.686599] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 126976 bytes from PEB 3:4096, read only 126976 bytes, retry
+[    5.707268] ubi0 error: ubi_io_read: error -74 (ECC error) while reading 126976 bytes from PEB 3:4096, read 126976 bytes
+[    5.718213] CPU: 0 PID: 1 Comm: swapper/0 Not tainted 4.1.15 #1
+[    5.724167] Hardware name: Freescale i.MX6 Ultralite (Device Tree)
+[    5.730387] [<80015dbc>] (unwind_backtrace) from [<80012748>] (show_stack+0x10/0x14)
+[    5.738194] [<80012748>] (show_stack) from [<8081f3ac>] (dump_stack+0x84/0xc4)
+[    5.745471] [<8081f3ac>] (dump_stack) from [<8041dac8>] (ubi_io_read+0x128/0x30c)
+[    5.752972] [<8041dac8>] (ubi_io_read) from [<8041b508>] (ubi_eba_read_leb+0x144/0x3dc)
+[    5.761051] [<8041b508>] (ubi_eba_read_leb) from [<8041a5c8>] (ubi_leb_read+0x70/0xc8)
+[    5.769023] [<8041a5c8>] (ubi_leb_read) from [<8021ca50>] (ubifs_leb_read+0x2c/0x98)
+[    5.776809] [<8021ca50>] (ubifs_leb_read) from [<80235390>] (get_master_node+0x4c/0x25c)
+[    5.784939] [<80235390>] (get_master_node) from [<80235888>] (ubifs_recover_master_node+0x44/0x2f4)
+[    5.794022] [<80235888>] (ubifs_recover_master_node) from [<80224084>] (ubifs_read_master+0x794/0x930)
+[    5.803375] [<80224084>] (ubifs_read_master) from [<8021a964>] (ubifs_mount+0xe0c/0x1768)
+[    5.811570] [<8021a964>] (ubifs_mount) from [<800ed5c8>] (mount_fs+0x14/0xa4)
+[    5.818745] [<800ed5c8>] (mount_fs) from [<801050cc>] (vfs_kern_mount+0x4c/0xf4)
+[    5.826179] [<801050cc>] (vfs_kern_mount) from [<80107ef0>] (do_mount+0x19c/0xb98)
+[    5.833786] [<80107ef0>] (do_mount) from [<80108c38>] (SyS_mount+0x74/0xa0)
+[    5.840767] [<80108c38>] (SyS_mount) from [<80b440e0>] (mount_block_root+0x100/0x228)
+[    5.848637] [<80b440e0>] (mount_block_root) from [<80b444ac>] (prepare_namespace+0xa8/0x1d4)
+[    5.857117] [<80b444ac>] (prepare_namespace) from [<80b43e3c>] (kernel_init_freeable+0x1d4/0x1e4)
+[    5.866026] [<80b43e3c>] (kernel_init_freeable) from [<8081b324>] (kernel_init+0xc/0xe8)
+[    5.874153] [<8081b324>] (kernel_init) from [<8000f528>] (ret_from_fork+0x14/0x2c)
+[    5.891243] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 126976 bytes from PEB 4:4096, read only 126976 bytes, retry
+[    5.911929] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 126976 bytes from PEB 4:4096, read only 126976 bytes, retry
+[    5.932063] ubi0 warning: ubi_io_read: error -74 (ECC error) while reading 126976 bytes from PEB 4:4096, read only 126976 bytes, retry
+[    5.952177] ubi0 error: ubi_io_read: error -74 (ECC error) while reading 126976 bytes from PEB 4:4096, read 126976 bytes
+[    5.963167] CPU: 0 PID: 1 Comm: swapper/0 Not tainted 4.1.15 #1
+[    5.969126] Hardware name: Freescale i.MX6 Ultralite (Device Tree)
+[    5.975375] [<80015dbc>] (unwind_backtrace) from [<80012748>] (show_stack+0x10/0x14)
+[    5.983141] [<80012748>] (show_stack) from [<8081f3ac>] (dump_stack+0x84/0xc4)
+[    5.990420] [<8081f3ac>] (dump_stack) from [<8041dac8>] (ubi_io_read+0x128/0x30c)
+[    5.997974] [<8041dac8>] (ubi_io_read) from [<8041b508>] (ubi_eba_read_leb+0x144/0x3dc)
+[    6.006029] [<8041b508>] (ubi_eba_read_leb) from [<8041a5c8>] (ubi_leb_read+0x70/0xc8)
+[    6.013991] [<8041a5c8>] (ubi_leb_read) from [<8021ca50>] (ubifs_leb_read+0x2c/0x98)
+[    6.021752] [<8021ca50>] (ubifs_leb_read) from [<80235390>] (get_master_node+0x4c/0x25c)
+[    6.029885] [<80235390>] (get_master_node) from [<802358ac>] (ubifs_recover_master_node+0x68/0x2f4)
+[    6.038973] [<802358ac>] (ubifs_recover_master_node) from [<80224084>] (ubifs_read_master+0x794/0x930)
+[    6.048332] [<80224084>] (ubifs_read_master) from [<8021a964>] (ubifs_mount+0xe0c/0x1768)
+[    6.056554] [<8021a964>] (ubifs_mount) from [<800ed5c8>] (mount_fs+0x14/0xa4)
+[    6.063730] [<800ed5c8>] (mount_fs) from [<801050cc>] (vfs_kern_mount+0x4c/0xf4)
+[    6.071144] [<801050cc>] (vfs_kern_mount) from [<80107ef0>] (do_mount+0x19c/0xb98)
+[    6.078752] [<80107ef0>] (do_mount) from [<80108c38>] (SyS_mount+0x74/0xa0)
+[    6.085756] [<80108c38>] (SyS_mount) from [<80b440e0>] (mount_block_root+0x100/0x228)
+[    6.093628] [<80b440e0>] (mount_block_root) from [<80b444ac>] (prepare_namespace+0xa8/0x1d4)
+[    6.102082] [<80b444ac>] (prepare_namespace) from [<80b43e3c>] (kernel_init_freeable+0x1d4/0x1e4)
+[    6.110993] [<80b43e3c>] (kernel_init_freeable) from [<8081b324>] (kernel_init+0xc/0xe8)
+[    6.119122] [<8081b324>] (kernel_init) from [<8000f528>] (ret_from_fork+0x14/0x2c)
+[    6.127513] UBIFS error (ubi0:0 pid 1): ubifs_recover_master_node: failed to recover master node
+[    6.136370] UBIFS error (ubi0:0 pid 1): ubifs_recover_master_node: dumping first master node
+[    6.144837]  magic          0x6101831
+[    6.148506]  crc            0xe4fd9b95
+[    6.152259]  node_type      7 (master node)
+[    6.156489]  group_type     0 (no node group)
+[    6.160852]  sqnum          2555
+[    6.164109]  len            512
+[    6.167254]  highest_inum   445
+[    6.170398]  commit number  0
+[    6.173389]  flags          0x2
+[    6.176533]  log_lnum       3
+[    6.179506]  root_lnum      36
+[    6.182562]  root_offs      52024
+[    6.185899]  root_len       108
+[    6.189043]  gc_lnum        35
+[    6.192102]  ihead_lnum     36
+[    6.195177]  ihead_offs     53248
+[    6.198496]  index_size     52136
+[    6.201814]  lpt_lnum       8
+[    6.204805]  lpt_offs       179
+[    6.207951]  nhead_lnum     8
+[    6.210922]  nhead_offs     2048
+[    6.214173]  ltab_lnum      8
+[    6.217145]  ltab_offs      191
+[    6.220288]  lsave_lnum     0
+[    6.223258]  lsave_offs     0
+[    6.226248]  lscan_lnum     11
+[    6.229308]  leb_cnt        37
+[    6.232365]  empty_lebs     1
+[    6.235352]  idx_lebs       1
+[    6.238325]  total_free     260096
+[    6.241731]  total_dirty    20824
+[    6.245067]  total_used     2968320
+[    6.248559]  total_dead     16800
+[    6.251879]  total_dark     26688
+[    6.255276] UBIFS error (ubi0:0 pid 1): ubifs_recover_master_node: dumping second master node
+[    6.263831]  magic          0x6101831
+[    6.267501]  crc            0xda13c317
+[    6.271254]  node_type      7 (master node)
+[    6.275464]  group_type     0 (no node group)
+[    6.279826]  sqnum          2560
+[    6.283057]  len            512
+[    6.286220]  highest_inum   445
+[    6.289364]  commit number  0
+[    6.292334]  flags          0x3
+[    6.295497]  log_lnum       3
+[    6.298469]  root_lnum      36
+[    6.301526]  root_offs      52024
+[    6.304862]  root_len       108
+[    6.308007]  gc_lnum        35
+[    6.311064]  ihead_lnum     36
+[    6.314139]  ihead_offs     53248
+[    6.317458]  index_size     52136
+[    6.320776]  lpt_lnum       8
+[    6.323763]  lpt_offs       179
+[    6.326909]  nhead_lnum     8
+[    6.329879]  nhead_offs     2048
+[    6.333110]  ltab_lnum      8
+[    6.336098]  ltab_offs      191
+[    6.339244]  lsave_lnum     0
+[    6.342215]  lsave_offs     0
+[    6.345204]  lscan_lnum     11
+[    6.348262]  leb_cnt        2048
+[    6.351492]  empty_lebs     2012
+[    6.354761]  idx_lebs       1
+[    6.357734]  total_free     255608832
+[    6.361399]  total_dirty    20824
+[    6.364747]  total_used     2968320
+[    6.368240]  total_dead     16800
+[    6.371561]  total_dark     12382272
+[    6.375573] List of all partitions:
+[    6.379091] 0100           65536 ram0  (driver?)
+[    6.383844] 0101           65536 ram1  (driver?)
+[    6.388487] 0102           65536 ram2  (driver?)
+[    6.393129] 0103           65536 ram3  (driver?)
+[    6.397841] 0104           65536 ram4  (driver?)
+[    6.402480] 0105           65536 ram5  (driver?)
+[    6.407180] 0106           65536 ram6  (driver?)
+[    6.411821] 0107           65536 ram7  (driver?)
+[    6.416491] 0108           65536 ram8  (driver?)
+[    6.421130] 0109           65536 ram9  (driver?)
+[    6.425799] 010a           65536 ram10  (driver?)
+[    6.430526] 010b           65536 ram11  (driver?)
+[    6.435276] 010c           65536 ram12  (driver?)
+[    6.440003] 010d           65536 ram13  (driver?)
+[    6.444756] 010e           65536 ram14  (driver?)
+[    6.449485] 010f           65536 ram15  (driver?)
+[    6.454243] 1f00            4096 mtdblock0  (driver?)
+[    6.459318] 1f01             128 mtdblock1  (driver?)
+[    6.464414] 1f02            1024 mtdblock2  (driver?)
+[    6.469488] 1f03            1024 mtdblock3  (driver?)
+[    6.474584] 1f04            8192 mtdblock4  (driver?)
+[    6.479657] 1f05          509824 mtdblock5  (driver?)
+[    6.484752] b300        15267840 mmcblk0  driver: mmcblk
+[    6.490082] No filesystem could mount root, tried:  ubifs
+[    6.495542] Kernel panic - not syncing: VFS: Unable to mount root fs on unknown-block(0,0)
+[    6.503819] ---[ end Kernel panic - not syncing: VFS: Unable to mount root fs on unknown-block(0,0)
+
+
+```
+
+- 定位和分析  
+**在 i.MX6ULL 的 GPMI NAND 驱动里，Legacy BCH Geometry 本质上就是 ECC（Error Correction Code，错误纠正码）布局算法的一种实现方式**
+    - 排除NAND FLASH硬件坏块问题
+    - 掉电引发数据损坏（我认为概率几乎没有，因此直接排除）
+    - 内核和uboot的在ecc问题上不兼容（定位后也排除，2016版本的内核只有软BCH校验）
+    - <mark/>最后怀疑是kernel起来后，第一次会将访问(ubi0: volume 0 ("rootfs") re-sized from 37 to 3899 LEBs)将roofs进行了某些修改，可能是结束标志等原因</mark>
+    - <mark/>最后修改`nand write`为`nand wirte.trimffs`后，rootfs多次启动都能成功</mark>.
+
+- .trimffs
+
+**在 U-Boot 烧录 UBI 镜像时，自动裁剪掉镜像末尾的全 0xFF 空白页，避免 U-Boot 把这些空白页强行写入错误的 ECC 校验码，从而防止 Linux 第一次启动时就把这些页识别为坏块或损坏页。**
+
+### 手误将kernel和dtb烧录地址互调
+
+```bash
+131072 bytes read: OK
+
+Kernel image @ 0x80800000 [ 0x000000 - 0x6797a8 ]
+
+## Flattened Device Tree blob at 83000000
+
+   Booting using the fdt blob at 0x83000000
+
+   Using Device Tree in place at 83000000, end 8300c94c
+
+WARNING: could not set bootargs FDT_ERR_BADSTRUCTURE.
+
+ERROR: /chosen node create failed
+
+ - must RESET the board to recover.
+
+
+FDT creation failed! hanging...### ERROR ### Please RESET the board ### 
+```
+
+```bash
+
+Hit any key to stop autoboot: 0 => tftp ${loadaddr} zImage;nand erase 0x520000 0x100000;nand write ${fdt_addr} 0x520000 ${filesize}; FEC1 Waiting for PHY auto negotiation to complete.... done Using FEC1 device TFTP from server 192.168.31.169; our IP address is 192.168.31.100 Filename 'zImage'. Load address: 0x80800000 Loading: ################################################################# ################################################################# ################################################################# ################################################################# ################################################################# ################################################################# ################################################################# ######## 700.2 KiB/s done Bytes transferred = 6789032 (6797a8 hex) NAND erase: device 0 offset 0x520000, size 0x100000 Erasing at 0x600000 -- 100% complete. OK NAND write: device 0 offset 0x520000, size 0x6797a8 NAND write to offset 520000 failed -5 0 bytes written: ERROR =>
+```
+
 # QA
 
 ::: question
@@ -332,3 +1188,4 @@ nand erase <offset> <size>
 ::: question
 **Q:** <u>__buildroot编译后的烧录image为什么用.ubi，不使用.ubifs__</u>  
 **A:** `.ubi` 是 UBI（Unsorted Block Images）的镜像格式，包含了UBI的管理信息（如EC Header和VID Header），适用于直接烧录到NAND FLASH中。而 `.ubifs` 是 UBIFS（UBI File System）的文件系统镜像，不包含UBI的管理信息，通常需要先烧录为UBI格式后才能使用。因此，直接烧录到NAND FLASH中时，使用`.ubi`格式更合适。
+
