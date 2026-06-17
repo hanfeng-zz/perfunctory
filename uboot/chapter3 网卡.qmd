@@ -142,6 +142,23 @@ static void setup_iomux_fec(int fec_id)
 
 ```
 
+- 通过MX6_PAD_GPIO1_IO06__ENET2_MDIO这个命名，可知晓是GPIO1_IO06引脚被复用成ENET2_MDIO功能的引脚，在`imx6ull reference manual`中，page 1574中确认GPIO1_IO06是复用管脚，9选1。
+
+```bash
+MUX Mode Select Field.
+Select 1 of 9 iomux modes to be used for pad: GPIO1_IO06.
+0000 ALT0 — Select mux mode: ALT0 mux port: ENET1_MDIO of instance: enet1
+0001 ALT1 — Select mux mode: ALT1 mux port: ENET2_MDIO of instance: enet2
+0010 ALT2 — Select mux mode: ALT2 mux port: USB_OTG_PWR_WAKE of instance: usb
+0011 ALT3 — Select mux mode: ALT3 mux port: CSI_MCLK of instance: csi
+0100 ALT4 — Select mux mode: ALT4 mux port: USDHC2_WP of instance: usdhc2
+0101 ALT5 — Select mux mode: ALT5 mux port: GPIO1_IO06 of instance: gpio1
+0110 ALT6 — Select mux mode: ALT6 mux port: CCM_WAIT of instance: ccm
+0111 ALT7 — Select mux mode: ALT7 mux port: CCM_REF_EN_B of instance: ccm
+1000 ALT8 — Select mux mode: ALT8 mux port: UART1_CTS_B of instance: uart1
+
+
+```
 
 - </mark>所以在uboot中只能创建一个网卡，无法创建第二个网卡eth1.</mark>
 
