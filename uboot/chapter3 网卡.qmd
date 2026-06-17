@@ -170,3 +170,8 @@ Select 1 of 9 iomux modes to be used for pad: GPIO1_IO06.
 ## 为什么mx6ullevk.c中网卡名叫fec? 
 
 > “FEC” 是 Fast Ethernet Controller 的缩写，指 NXP/Freescale SoC 上的以太网 MAC 硬件块。
+
+
+## uboot只能支持一个网卡，但是kernel能同时支持两个？
+
+> Kernel 之所以能同时支持双网卡，不是因为它在一个引脚上同时开了两个功能，而是因为 Kernel 有能力通过“一组 MDIO 引脚配置成一个功能”，去同时管理挂在总线上的两个硬件 PHY 芯片；而 U-Boot 因为设计精简，无法高效地在软件层面对这种“共享总线”进行复杂的跨控制器协调。
