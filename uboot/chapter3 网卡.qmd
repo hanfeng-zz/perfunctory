@@ -142,7 +142,7 @@ static void setup_iomux_fec(int fec_id)
 
 ```
 
-- 通过MX6_PAD_GPIO1_IO06__ENET2_MDIO这个命名，可知晓是GPIO1_IO06引脚被复用成ENET2_MDIO功能的引脚，在`imx6ull reference manual`中，page 1574中确认GPIO1_IO06是复用管脚，9选1。
+- 通过MX6_PAD_GPIO1_IO06__ENET2_MDIO这个命名，可知晓是GPIO1_IO06引脚被复用成ENET2_MDIO功能的引脚，在`imx6ull reference manual`中，page 1574中确认GPIO1_IO06是复用引脚，9选1。
 
 ```bash
 MUX Mode Select Field.
@@ -163,7 +163,212 @@ Select 1 of 9 iomux modes to be used for pad: GPIO1_IO06.
 - </mark>所以在uboot中只能创建一个网卡，无法创建第二个网卡eth1.</mark>
 
 
+# kernel
 
+- 创建两个网卡
+
+从imx6ull-alientek-emmc.dts可知，fec2是主网卡，fec1的数据是借用fec2来传输的。
+
+```bash
+&fec1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_enet1
+		     &pinctrl_fec1_reset>;
+	phy-mode = "rmii";
+	phy-handle = <&ethphy0>;
+	phy-reset-gpios = <&gpio5 7 GPIO_ACTIVE_LOW>;
+	phy-reset-duration = <200>;
+	status = "okay";
+};
+
+&fec2 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_enet2
+		     &pinctrl_fec2_reset>;
+	phy-mode = "rmii";
+	phy-handle = <&ethphy1>;
+	phy-reset-gpios = <&gpio5 8 GPIO_ACTIVE_LOW>;
+	phy-reset-duration = <200>;
+	status = "okay";
+
+	mdio {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		ethphy0: ethernet-phy@2 {
+			compatible = "ethernet-phy-ieee802.3-c22";
+			reg = <0>;
+		};
+
+		ethphy1: ethernet-phy@1 {
+			compatible = "ethernet-phy-ieee802.3-c22";
+			reg = <1>;
+		};
+	};
+};
+
+```
+
+- fec1能做主网卡？
+
+![](./pictures/cpu.png)
+
+1. 引脚`K17`，外界标签写：`ENET_MDIO`
+2. 引脚 `L16`，外接标签写着：`ENET_MDC`
+3. `K17`和`L16`在黄色区域标注`ENET1_2_MDIO`和`ENET1_2_MDC`
+
+所以理论上是可以的。
+
+
+<mark/>但是通过修改dts的方式进行测试,失败！</mark>
+
+```bash
+源码
+&fec1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_enet1
+		     &pinctrl_fec1_reset>;
+	phy-mode = "rmii";
+	phy-handle = <&ethphy0>;
+	phy-reset-gpios = <&gpio5 7 GPIO_ACTIVE_LOW>;
+	phy-reset-duration = <200>;
+	status = "okay";
+};
+
+&fec2 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_enet2
+		     &pinctrl_fec2_reset>;
+	phy-mode = "rmii";
+	phy-handle = <&ethphy1>;
+	phy-reset-gpios = <&gpio5 8 GPIO_ACTIVE_LOW>;
+	phy-reset-duration = <200>;
+	status = "okay";
+
+	mdio {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		ethphy0: ethernet-phy@2 {
+			compatible = "ethernet-phy-ieee802.3-c22";
+			reg = <0>;
+		};
+
+		ethphy1: ethernet-phy@1 {
+			compatible = "ethernet-phy-ieee802.3-c22";
+			reg = <1>;
+		};
+	};
+};
+
+pinctrl_enet1: enet1grp {
+	fsl,pins = <
+		MX6UL_PAD_ENET1_RX_EN__ENET1_RX_EN	0x1b0b0
+		MX6UL_PAD_ENET1_RX_ER__ENET1_RX_ER	0x1b0b0
+		MX6UL_PAD_ENET1_RX_DATA0__ENET1_RDATA00	0x1b0b0
+		MX6UL_PAD_ENET1_RX_DATA1__ENET1_RDATA01	0x1b0b0
+		MX6UL_PAD_ENET1_TX_EN__ENET1_TX_EN	0x1b0b0
+		MX6UL_PAD_ENET1_TX_DATA0__ENET1_TDATA00	0x1b0b0
+		MX6UL_PAD_ENET1_TX_DATA1__ENET1_TDATA01	0x1b0b0
+		MX6UL_PAD_ENET1_TX_CLK__ENET1_REF_CLK1	0x4001b031
+	>;
+};
+
+pinctrl_enet2: enet2grp {
+	fsl,pins = <
+		MX6UL_PAD_GPIO1_IO07__ENET2_MDC		0x1b0b0
+		MX6UL_PAD_GPIO1_IO06__ENET2_MDIO	0x1b0b0
+		MX6UL_PAD_ENET2_RX_EN__ENET2_RX_EN	0x1b0b0
+		MX6UL_PAD_ENET2_RX_ER__ENET2_RX_ER	0x1b0b0
+		MX6UL_PAD_ENET2_RX_DATA0__ENET2_RDATA00	0x1b0b0
+		MX6UL_PAD_ENET2_RX_DATA1__ENET2_RDATA01	0x1b0b0
+		MX6UL_PAD_ENET2_TX_EN__ENET2_TX_EN	0x1b0b0
+		MX6UL_PAD_ENET2_TX_DATA0__ENET2_TDATA00	0x1b0b0
+		MX6UL_PAD_ENET2_TX_DATA1__ENET2_TDATA01	0x1b0b0
+		MX6UL_PAD_ENET2_TX_CLK__ENET2_REF_CLK2	0x4001b031
+	>;
+};
+	
+
+修改后
+
+&fec1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_enet1
+		     &pinctrl_fec1_reset>;
+	phy-mode = "rmii";
+	phy-handle = <&ethphy0>;
+	phy-reset-gpios = <&gpio5 7 GPIO_ACTIVE_LOW>;
+	phy-reset-duration = <200>;
+	status = "okay";
+
+		mdio {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		ethphy0: ethernet-phy@2 {
+			compatible = "ethernet-phy-ieee802.3-c22";
+			reg = <0>;
+		};
+
+		ethphy1: ethernet-phy@1 {
+			compatible = "ethernet-phy-ieee802.3-c22";
+			reg = <1>;
+		};
+	};
+};
+
+&fec2 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_enet2
+		     &pinctrl_fec2_reset>;
+	phy-mode = "rmii";
+	phy-handle = <&ethphy1>;
+	phy-reset-gpios = <&gpio5 8 GPIO_ACTIVE_LOW>;
+	phy-reset-duration = <200>;
+	status = "okay";
+};
+
+pinctrl_enet1: enet1grp {
+	fsl,pins = <
+		MX6UL_PAD_GPIO1_IO07__ENET2_MDC		0x1b0b0
+		MX6UL_PAD_GPIO1_IO06__ENET2_MDIO	0x1b0b0
+		MX6UL_PAD_ENET1_RX_EN__ENET1_RX_EN	0x1b0b0
+		MX6UL_PAD_ENET1_RX_ER__ENET1_RX_ER	0x1b0b0
+		MX6UL_PAD_ENET1_RX_DATA0__ENET1_RDATA00	0x1b0b0
+		MX6UL_PAD_ENET1_RX_DATA1__ENET1_RDATA01	0x1b0b0
+		MX6UL_PAD_ENET1_TX_EN__ENET1_TX_EN	0x1b0b0
+		MX6UL_PAD_ENET1_TX_DATA0__ENET1_TDATA00	0x1b0b0
+		MX6UL_PAD_ENET1_TX_DATA1__ENET1_TDATA01	0x1b0b0
+		MX6UL_PAD_ENET1_TX_CLK__ENET1_REF_CLK1	0x4001b031
+	>;
+};
+
+pinctrl_enet2: enet2grp {
+	fsl,pins = <
+		MX6UL_PAD_ENET2_RX_EN__ENET2_RX_EN	0x1b0b0
+		MX6UL_PAD_ENET2_RX_ER__ENET2_RX_ER	0x1b0b0
+		MX6UL_PAD_ENET2_RX_DATA0__ENET2_RDATA00	0x1b0b0
+		MX6UL_PAD_ENET2_RX_DATA1__ENET2_RDATA01	0x1b0b0
+		MX6UL_PAD_ENET2_TX_EN__ENET2_TX_EN	0x1b0b0
+		MX6UL_PAD_ENET2_TX_DATA0__ENET2_TDATA00	0x1b0b0
+		MX6UL_PAD_ENET2_TX_DATA1__ENET2_TDATA01	0x1b0b0
+		MX6UL_PAD_ENET2_TX_CLK__ENET2_REF_CLK2	0x4001b031
+	>;
+};
+	
+```
+
+- 其他方式判定谁是主网卡
+
+```bash
+
+# ls -l /sys/bus/mdio_bus/devices
+total 0
+lrwxrwxrwx    1 root     root             0 Jan  1 00:00 20b4000.ethernet:00 -> ../../../devices/platform/soc/2000000.aips-bus/20b4000.ethernet/20b4000.ethernet:00
+lrwxrwxrwx    1 root     root             0 Jan  1 00:00 20b4000.ethernet:01 -> ../../../devices/platform/soc/2000000.aips-bus/20b4000.ethernet/20b4000.ethernet:01
+
+```
 
 # QA
 
